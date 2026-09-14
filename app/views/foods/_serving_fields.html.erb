@@ -1,0 +1,14 @@
+<div class="card stack">
+  <div class="field">
+    <%= form.label :label, "Etiqueta" %>
+    <%= form.text_field :label %>
+  </div>
+  <div class="field">
+    <%= form.label :grams, "Gramos" %>
+    <%= form.number_field :grams, step: :any, inputmode: "decimal" %>
+  </div>
+  <label class="row">
+    <%= form.check_box :is_default %>
+    Preseleccionar esta porción
+  </label>
+</div>

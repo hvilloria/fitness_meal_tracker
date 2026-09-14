@@ -1,0 +1,17 @@
+es:
+  food:
+    states:
+      raw: "Crudo"
+      cooked: "Cocido"
+      dry: "Seco"
+      as_sold: "Tal como se vende"
+  meals:
+    breakfast: "Desayuno"
+    lunch: "Almuerzo"
+    snack: "Merienda"
+    dinner: "Cena"
+  date:
+    formats:
+      long: "%A %-d de %B de %Y"
+    day_names: [domingo, lunes, martes, miércoles, jueves, viernes, sábado]
+    month_names: [~, enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre]

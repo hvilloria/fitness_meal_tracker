@@ -1,0 +1,13 @@
+<% content_for :title, "Alimentos" %>
+
+<div class="row" style="justify-content: space-between;">
+  <h1>Alimentos</h1>
+  <%= link_to "Nuevo", new_food_path, class: "button button--primary" %>
+</div>
+
+<div class="stack">
+  <% if @foods.empty? %>
+    <p class="muted">Todavía no cargaste ningún alimento.</p>
+  <% end %>
+  <%= render @foods %>
+</div>

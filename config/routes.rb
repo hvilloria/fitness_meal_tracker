@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   resource :goal, only: %i[edit update]
+  resources :foods
 
   root "days#show"
 end
