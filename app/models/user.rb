@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   has_many :foods, dependent: :destroy
+  has_many :goals, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true
@@ -26,5 +27,9 @@ class User < ApplicationRecord
     return nil unless user.save
 
     user
+  end
+
+  def default_goal
+    goals.find_by(is_default: true)
   end
 end
