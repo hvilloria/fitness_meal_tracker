@@ -21,5 +21,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the Supabase connection string}
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:?read it from config/master.key}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS}
     ports:
       - "8080:80"

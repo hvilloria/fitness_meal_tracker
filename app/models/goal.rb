@@ -6,7 +6,14 @@ class Goal < ApplicationRecord
 
   validates :label, presence: true
   validates :effective_from, presence: true
-  validates(*MACRO_FIELDS, numericality: { greater_than_or_equal_to: 0 })
+  # integer(4-byte) columns: a value at or above INTEGER_COLUMN_LIMIT passes
+  # here but the derived kcal (macro grams × up to 9, see #derive_kcal) can
+  # still raise ActiveModel::RangeError on save even when the raw macro
+  # itself is within the 4-byte limit — the same lesson Entry already
+  # learned for decimal(8, 2) columns. Bounding the inputs generously below
+  # the column limit keeps the derived kcal safely inside it too.
+  validates(*MACRO_FIELDS,
+    numericality: { greater_than_or_equal_to: 0, less_than: INTEGER_COLUMN_LIMIT })
 
   # The calorie target is never entered directly: it is whatever the three
   # macros add up to. Moving any macro moves the total.

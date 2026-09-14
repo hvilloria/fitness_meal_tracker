@@ -18,7 +18,7 @@ class FoodsController < ApplicationController
     if @food.save
       redirect_to foods_path, notice: "Alimento guardado."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -30,7 +30,7 @@ class FoodsController < ApplicationController
     if @food.update(food_params)
       redirect_to foods_path, notice: "Alimento actualizado."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

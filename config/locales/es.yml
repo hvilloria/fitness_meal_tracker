@@ -26,7 +26,7 @@ es:
         fiber_per_100: "Fibra"
         sodium_per_100: "Sodio"
         sugar_per_100: "Azúcar"
-      serving:
+      food/servings:
         label: "Etiqueta"
         grams: "Gramos"
       goal:

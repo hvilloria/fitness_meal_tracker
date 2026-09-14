@@ -1,4 +1,6 @@
 class GoalsController < ApplicationController
+  include NormalizesDecimalParams
+
   def edit
     @goal = current_user.default_goal || build_seeded_goal
   end
@@ -21,7 +23,7 @@ class GoalsController < ApplicationController
       if @goal.update(goal_params)
         redirect_to root_path, notice: "Meta guardada."
       else
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -40,6 +42,8 @@ class GoalsController < ApplicationController
     end
 
     def goal_params
-      require_params_hash(:goal).permit(:label, :protein_g, :carbs_g, :fat_g)
+      permitted = require_params_hash(:goal).permit(:label, :protein_g, :carbs_g, :fat_g)
+      normalize_decimals(permitted, :protein_g, :carbs_g, :fat_g)
+      permitted
     end
 end

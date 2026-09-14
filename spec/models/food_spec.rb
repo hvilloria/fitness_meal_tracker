@@ -33,6 +33,21 @@ RSpec.describe Food, type: :model do
       expect(build(:food, name: "Pechuga de pollo", brand: nil).display_name)
         .to eq("Pechuga de pollo")
     end
+
+    it "includes the state when it is not as_sold" do
+      expect(build(:food, name: "Pollo", brand: nil, state: "raw").display_name)
+        .to eq("Pollo (crudo)")
+    end
+
+    it "omits the state when it is as_sold" do
+      expect(build(:food, name: "Pollo", brand: nil, state: "as_sold").display_name)
+        .to eq("Pollo")
+    end
+
+    it "combines the brand and the state when both are present" do
+      expect(build(:food, name: "Pollo", brand: "Granja Sol", state: "cooked").display_name)
+        .to eq("Pollo (Granja Sol, cocido)")
+    end
   end
 
   describe ".active" do

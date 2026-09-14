@@ -1,25 +1,28 @@
 <% content_for :title, "Hoy" %>
 
+<% totals = @day_log.totals %>
+<% remaining = @day_log.remaining %>
+
 <div class="row" style="justify-content: space-between;">
-  <%= link_to "‹", root_path(date: @day_log.date - 1.day), class: "button" %>
+  <%= link_to "‹", root_path(date: @day_log.date - 1.day), class: "button", aria: { label: "Día anterior" } %>
   <h1><time datetime="<%= @day_log.date.iso8601 %>"><%= l @day_log.date, format: :long %></time></h1>
-  <%= link_to "›", root_path(date: @day_log.date + 1.day), class: "button" %>
+  <%= link_to "›", root_path(date: @day_log.date + 1.day), class: "button", aria: { label: "Día siguiente" } %>
 </div>
 
 <div class="rings">
-  <%= render "ring", label: "kcal", current: @day_log.totals[:kcal],
+  <%= render "ring", label: "kcal", current: totals[:kcal],
         goal: @day_log.goal.kcal, unit: "", color_var: "--color-accent" %>
-  <%= render "ring", label: "Proteína", current: @day_log.totals[:protein_g],
+  <%= render "ring", label: "Proteína", current: totals[:protein_g],
         goal: @day_log.goal.protein_g, unit: "g", color_var: "--color-protein" %>
-  <%= render "ring", label: "Carbos", current: @day_log.totals[:carbs_g],
+  <%= render "ring", label: "Carbos", current: totals[:carbs_g],
         goal: @day_log.goal.carbs_g, unit: "g", color_var: "--color-carbs" %>
-  <%= render "ring", label: "Grasa", current: @day_log.totals[:fat_g],
+  <%= render "ring", label: "Grasa", current: totals[:fat_g],
         goal: @day_log.goal.fat_g, unit: "g", color_var: "--color-fat" %>
 </div>
 
 <div class="card remaining">
-  <span class="remaining__value <%= "negative" if @day_log.remaining[:kcal].negative? %>">
-    <%= number_with_precision(@day_log.remaining[:kcal], precision: 0) %>
+  <span class="remaining__value <%= "negative" if remaining[:kcal].negative? %>">
+    <%= number_with_precision(remaining[:kcal], precision: 0) %>
   </span>
   <span class="muted">kcal restantes</span>
 </div>

@@ -10,6 +10,20 @@ RSpec.describe Goal, type: :model do
     expect(build(:goal, protein_g: -1)).not_to be_valid
   end
 
+  describe "integer(4-byte) overflow" do
+    it "rejects a macro at or above the column's bound" do
+      expect(build(:goal, protein_g: 100_000)).not_to be_valid
+    end
+
+    it "rejects a macro that is itself in range for the column but whose derived kcal is not, instead of raising on save" do
+      goal = build(:goal, protein_g: 2_000_000_000, carbs_g: 0, fat_g: 0)
+
+      expect { goal.save }.not_to raise_error
+      expect(goal).not_to be_persisted
+      expect(goal.errors.attribute_names).to include(:protein_g)
+    end
+  end
+
   describe "kcal" do
     it "is always derived from the macros on save" do
       goal = create(:goal, protein_g: 180, carbs_g: 220, fat_g: 78, kcal: 9999)

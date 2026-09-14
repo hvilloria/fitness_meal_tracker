@@ -41,7 +41,7 @@ class EntriesController < ApplicationController
       # type accepted; there is no entries/new.turbo_stream.erb (and should
       # not be one — a full form re-render belongs in HTML), so force the
       # format explicitly rather than letting content negotiation 500.
-      render :new, formats: :html, status: :unprocessable_entity
+      render :new, formats: :html, status: :unprocessable_content
     end
   end
 
@@ -53,7 +53,12 @@ class EntriesController < ApplicationController
 
   private
     def load_food_options
-      @recent_foods = Food.recent_for(current_user)
+      # Food.recent_for is an INNER JOIN on entries: a food that has never
+      # been logged returns nothing from it. Without this fallback, a food's
+      # first-ever appearance on the form would never happen — it would need
+      # to already be logged to be loggable. Fall back to the full active
+      # catalog so a brand new food is reachable the moment it is created.
+      @recent_foods = Food.recent_for(current_user).presence || current_user.foods.active.order(:name)
       @last_grams = Food.last_grams_for(current_user)
     end
 

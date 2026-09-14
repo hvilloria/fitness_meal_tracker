@@ -55,6 +55,21 @@ RSpec.describe "Foods", type: :request do
     expect(response.body).not_to include("Translation missing")
   end
 
+  it "shows a real Spanish message for an invalid nested serving, not a half-English fallback" do
+    user
+
+    post foods_path, params: {
+      food: {
+        name: "Con porción inválida", state: "as_sold",
+        kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
+        servings_attributes: { "0" => { label: "", grams: 10 } }
+      }
+    }
+
+    expect(response.body).to include("Etiqueta no puede estar en blanco")
+    expect(response.body).not_to include("Servings label")
+  end
+
   it "rejects an out-of-range decimal instead of raising on save" do
     user
 

@@ -48,11 +48,26 @@ class Food < ApplicationRecord
     servings.find_by(is_default: true)
   end
 
+  # Raw and cooked chicken differ by roughly 30%: rendering both as "Pollo"
+  # would make them indistinguishable everywhere this is used, including
+  # food_name_snapshot, which freezes it into entry history forever. Only
+  # as_sold is left off — it is the unmarked default state (packaged food,
+  # eaten as-is) and naming it on every such food would be noise.
   def display_name
-    brand.present? ? "#{name} (#{brand})" : name
+    extras = [ brand, state_label ].compact
+    extras.any? ? "#{name} (#{extras.join(", ")})" : name
   end
 
   def archived?
     archived_at.present?
   end
+
+  private
+    def state_label
+      return nil if state.blank? || state == "as_sold"
+
+      # food.states.* is capitalized for standalone use (a select option);
+      # lower-cased here since it reads inline, parenthetical to the name.
+      I18n.t("food.states.#{state}").downcase
+    end
 end

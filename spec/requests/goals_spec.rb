@@ -61,6 +61,15 @@ RSpec.describe "Goals", type: :request do
     expect(user.default_goal.kcal).to eq(2342)
   end
 
+  it "accepts a comma as the decimal separator for a macro" do
+    user
+
+    patch goal_path, params: { goal: { label: "Día normal", protein_g: "180,5", carbs_g: 220, fat_g: 78 } }
+
+    expect(response).to redirect_to(root_path)
+    expect(user.default_goal.protein_g).to eq(180)
+  end
+
   it "re-renders when the macros are invalid" do
     user
     patch goal_path, params: { goal: { label: "", protein_g: -5 } }

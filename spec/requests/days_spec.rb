@@ -69,6 +69,16 @@ RSpec.describe "Days", type: :request do
     end
   end
 
+  it "labels the prev/next day links for screen readers" do
+    sign_in
+    create(:goal, user: @user, is_default: true)
+
+    get root_path
+
+    expect(response.body).to include('aria-label="Día anterior"')
+    expect(response.body).to include('aria-label="Día siguiente"')
+  end
+
   it "recovers when DayLog.for loses a create race" do
     user = create(:user, day_cutoff_hour: 4)
     goal = create(:goal, user: user, is_default: true)
@@ -89,7 +99,7 @@ RSpec.describe "Days", type: :request do
   end
 
   describe "the dashboard" do
-    def user = User.last
+    def user = @user
 
     before do
       sign_in
@@ -112,6 +122,22 @@ RSpec.describe "Days", type: :request do
 
       expect(response.body).to include("Almuerzo")
       expect(response.body).to include("Pechuga de pollo")
+    end
+
+    it "computes totals and remaining once each instead of once per ring" do
+      create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69)
+      food = create(:food, user: user, kcal_per_100: 100, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 1)
+      post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 100 } }
+
+      sum_queries = 0
+      counter = ->(*, payload) { sum_queries += 1 if payload[:sql].include?("SUM(") }
+
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get root_path }
+
+      # One for the totals local, one more inside #remaining (which calls
+      # #totals again internally) — down from 6, since #totals/#remaining
+      # are deliberately not memoised on the model (see DayLog#totals).
+      expect(sum_queries).to eq(2)
     end
 
     it "shows a negative remainder rather than clamping at zero" do

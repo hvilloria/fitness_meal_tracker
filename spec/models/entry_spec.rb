@@ -24,6 +24,13 @@ RSpec.describe Entry, type: :model do
       expect(entry.food_name_snapshot).to eq("Port Salut light (La Serenísima)")
     end
 
+    it "snapshots the food's state, since it is frozen into history and never re-derived" do
+      raw_chicken = create(:food, user: user, name: "Pollo", brand: nil, state: "raw")
+      entry = Entry.create!(day_log: day_log, food: raw_chicken, meal: "snack", grams: 40)
+
+      expect(entry.food_name_snapshot).to eq("Pollo (crudo)")
+    end
+
     it "requires grams" do
       entry = build(:entry, day_log: day_log, food: food, grams: nil)
 
@@ -87,6 +94,14 @@ RSpec.describe Entry, type: :model do
       entry.update!(position: 3)
 
       expect(entry.reload.food_name_snapshot).to eq("Port Salut light (La Serenísima)")
+    end
+
+    it "keeps its frozen kcal when an orphaned entry receives a direct macro write" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+      food.destroy
+      entry.reload
+
+      expect { entry.update!(protein_g: 5) }.not_to change { entry.reload.kcal }
     end
 
     it "raises rather than silently re-deriving when recalculate! is called on an orphan" do

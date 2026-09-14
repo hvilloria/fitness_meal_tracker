@@ -11,21 +11,25 @@ RSpec.describe User, type: :model do
 
   describe ".allowed?" do
     it "accepts an email listed in ALLOWED_EMAILS" do
+      allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com,b@example.com")
       expect(User.allowed?("b@example.com")).to be(true)
     end
 
     it "rejects an email that is not listed" do
+      allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com")
       expect(User.allowed?("intruder@example.com")).to be(false)
     end
 
     it "ignores surrounding whitespace and case" do
+      allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return(" A@Example.com , b@example.com ")
       expect(User.allowed?("a@example.com")).to be(true)
     end
 
     it "rejects everything when ALLOWED_EMAILS is unset" do
+      allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return(nil)
       expect(User.allowed?("a@example.com")).to be(false)
     end
@@ -33,6 +37,7 @@ RSpec.describe User, type: :model do
 
   describe ".from_omniauth" do
     before do
+      allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com")
     end
 

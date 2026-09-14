@@ -1,14 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "Entries", type: :request do
+  let(:user) { sign_in_via_google(email: "a@example.com") }
+
   before do
     allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com")
-    sign_in_via_google(email: "a@example.com")
-    create(:goal, user: User.last, is_default: true)
+    create(:goal, user: user, is_default: true)
   end
-
-  def user = User.last
 
   it "logs a catalog food by weight" do
     food = create(:food, user: user)
@@ -91,6 +90,14 @@ RSpec.describe "Entries", type: :request do
     get new_entry_path
 
     expect(response.body).to include("Pechuga de pollo")
+  end
+
+  it "offers a food that has never been logged, not just recent ones" do
+    food = create(:food, user: user, name: "Pechuga de pollo")
+
+    get new_entry_path
+
+    expect(response.body).to include(food.name)
   end
 
   it "carries the last weight used onto the food option" do
