@@ -41,6 +41,14 @@ RSpec.describe "Sessions", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  # Turbo would submit this form with fetch(), which follows the redirect to
+  # accounts.google.com and dies on CORS. Only a full navigation works.
+  it "opts the sign-in button out of Turbo" do
+    get sign_in_path
+
+    expect(response.body).to match(/<form[^>]*data-turbo="false"/)
+  end
+
   it "does not blow up on a callback with no omniauth data" do
     # No sign_in_via_google call, so OmniAuth.config.mock_auth is empty and
     # the callback reaches the controller with omniauth.auth set to nil.
