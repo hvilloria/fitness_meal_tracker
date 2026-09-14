@@ -10,9 +10,11 @@ class SessionsController < ApplicationController
   end
 
   def create
-    user = User.from_omniauth(request.env["omniauth.auth"])
+    auth = request.env["omniauth.auth"]
+    user = auth && User.from_omniauth(auth)
 
     if user
+      reset_session
       session[:user_id] = user.id
       redirect_to root_path
     else
@@ -25,7 +27,7 @@ class SessionsController < ApplicationController
   end
 
   def destroy
-    session.delete(:user_id)
+    reset_session
     redirect_to sign_in_path
   end
 end

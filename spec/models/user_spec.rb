@@ -58,5 +58,17 @@ RSpec.describe User, type: :model do
       user = User.from_omniauth(auth_hash(email: "a@example.com"))
       expect(user.day_cutoff_hour).to eq(4)
     end
+
+    it "returns nil instead of raising when the email collides under a different uid" do
+      create(:user, email: "a@example.com")
+
+      expect { expect(User.from_omniauth(auth_hash(email: "a@example.com", uid: "other-uid"))).to be_nil }
+        .not_to change(User, :count)
+    end
+
+    it "normalizes the email's case and surrounding whitespace" do
+      user = User.from_omniauth(auth_hash(email: " A@Example.com "))
+      expect(user.email).to eq("a@example.com")
+    end
   end
 end

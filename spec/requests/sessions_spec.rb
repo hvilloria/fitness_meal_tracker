@@ -39,4 +39,19 @@ RSpec.describe "Sessions", type: :request do
 
     expect(response).to have_http_status(:ok)
   end
+
+  it "does not blow up on a callback with no omniauth data" do
+    # No sign_in_via_google call, so OmniAuth.config.mock_auth is empty and
+    # the callback reaches the controller with omniauth.auth set to nil.
+    get "/auth/google_oauth2/callback"
+
+    expect(response).to redirect_to(sign_in_path)
+    expect(flash[:alert]).to be_present
+  end
+
+  it "404s on a callback for a provider other than google_oauth2" do
+    get "/auth/other_provider/callback"
+
+    expect(response).to have_http_status(:not_found)
+  end
 end

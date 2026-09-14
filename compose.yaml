@@ -28,6 +28,9 @@ services:
       POSTGRES_HOST: db
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS}
     volumes:
       # Source code lives on the host, so edits apply without a rebuild.
       - .:/rails

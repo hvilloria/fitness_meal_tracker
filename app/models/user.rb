@@ -18,10 +18,11 @@ class User < ApplicationRecord
     return nil unless allowed?(email)
 
     user = find_or_initialize_by(provider: auth.provider, uid: auth.uid)
-    user.email = email
+    user.email = email.strip.downcase
     user.name = auth.info.name
     user.avatar_url = auth.info.image
-    user.save!
+    return nil unless user.save
+
     user
   end
 end

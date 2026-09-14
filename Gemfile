@@ -23,10 +23,10 @@ gem "jbuilder"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 
-# Pin below 3.x: the omniauth stack pulls in json as a transitive dependency
-# with no upper bound, and json 3.x's JSON.parse no longer accepts a
-# positional options hash, which breaks ActiveSupport::JSON.decode (used by
-# the cookie session store) on Rails 8.1.3.
+# Pin below 3.x: activesupport, faraday, and rubocop all depend on json with
+# no upper bound, and json 3.x's JSON.parse no longer accepts a positional
+# options hash, which breaks ActiveSupport::JSON.decode (used by the cookie
+# session store) on Rails 8.1.3.
 gem "json", "~> 2.9"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
