@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_154733) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_160006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_154733) do
     t.string "label", null: false
     t.datetime "updated_at", null: false
     t.index ["food_id"], name: "index_servings_on_food_id"
+    t.index ["food_id"], name: "index_servings_on_one_default_per_food", unique: true, where: "is_default"
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

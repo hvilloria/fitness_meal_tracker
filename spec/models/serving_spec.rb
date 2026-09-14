@@ -45,5 +45,17 @@ RSpec.describe Serving, type: :model do
       expect(food.reload.default_serving).to eq(food_default)
       expect(other_food.reload.default_serving).to eq(other_default)
     end
+
+    it "is rejected by the database when the callback is bypassed via update_column" do
+      # Create one default serving
+      first = create(:serving, food: food, label: "1 feta", is_default: true)
+      second = create(:serving, food: food, label: "1 porción", is_default: false)
+
+      # Attempt to set the second serving as default by bypassing the before_save callback
+      # The partial unique index should prevent this
+      expect {
+        second.update_column(:is_default, true)
+      }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
   end
 end
