@@ -19,6 +19,16 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
+# Google sign-in. No passwords, so no Devise.
+gem "omniauth-google-oauth2"
+gem "omniauth-rails_csrf_protection"
+
+# Pin below 3.x: the omniauth stack pulls in json as a transitive dependency
+# with no upper bound, and json 3.x's JSON.parse no longer accepts a
+# positional options hash, which breaks ActiveSupport::JSON.decode (used by
+# the cookie session store) on Rails 8.1.3.
+gem "json", "~> 2.9"
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 

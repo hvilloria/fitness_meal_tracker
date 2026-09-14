@@ -1,0 +1,6 @@
+<% content_for :title, "Entrar" %>
+
+<main class="signin">
+  <h1>Macros</h1>
+  <%= button_to "Entrar con Google", auth_request_path(provider: "google_oauth2"), class: "button button--primary" %>
+</main>
