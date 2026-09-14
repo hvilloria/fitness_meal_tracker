@@ -38,5 +38,11 @@ module FitnessMealTracker
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # Generate RSpec specs and FactoryBot factories instead of Minitest files.
+    config.generators do |g|
+      g.test_framework :rspec
+      g.factory_bot dir: "spec/factories"
+    end
   end
 end

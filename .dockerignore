@@ -39,6 +39,10 @@
 # Ignore CI service files.
 /.github
 
+# Ignore tests.
+/spec
+/.rspec
+
 # Ignore Kamal files.
 /config/deploy*.yml
 /.kamal
