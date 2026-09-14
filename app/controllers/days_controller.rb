@@ -9,8 +9,8 @@ class DaysController < ApplicationController
     def requested_time
       return Time.current if params[:date].blank?
 
-      Date.parse(params[:date]).in_time_zone(Time.zone).change(hour: 12)
-    rescue Date::Error
+      Date.parse(params[:date].to_s).in_time_zone(Time.zone).change(hour: 12)
+    rescue Date::Error, ArgumentError, TypeError
       Time.current
     end
 

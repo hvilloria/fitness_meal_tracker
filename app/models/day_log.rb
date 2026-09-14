@@ -25,6 +25,11 @@ class DayLog < ApplicationRecord
       raise MissingGoal if goal.nil?
 
       user.day_logs.create!(date: date, goal: goal)
+    rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+      # find_by and create! are not atomic: a concurrent request (e.g. a
+      # double-tap) can create the same day_log between our lookup and our
+      # insert. Whoever loses the race just fetches the row the winner made.
+      user.day_logs.find_by!(date: date)
     end
   end
 
