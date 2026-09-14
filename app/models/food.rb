@@ -18,6 +18,10 @@ class Food < ApplicationRecord
 
   scope :active, -> { where(archived_at: nil) }
 
+  def default_serving
+    servings.find_by(is_default: true)
+  end
+
   def display_name
     brand.present? ? "#{name} (#{brand})" : name
   end

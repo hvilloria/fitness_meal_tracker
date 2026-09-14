@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_154627) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_154733) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -33,6 +33,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_154627) do
     t.index ["user_id"], name: "index_foods_on_user_id"
   end
 
+  create_table "servings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "food_id", null: false
+    t.decimal "grams", precision: 8, scale: 2, null: false
+    t.boolean "is_default", default: false, null: false
+    t.string "label", null: false
+    t.datetime "updated_at", null: false
+    t.index ["food_id"], name: "index_servings_on_food_id"
+  end
+
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "avatar_url"
     t.datetime "created_at", null: false
@@ -47,4 +57,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_154627) do
   end
 
   add_foreign_key "foods", "users"
+  add_foreign_key "servings", "foods"
 end
