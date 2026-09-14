@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Foods", type: :request do
-  let(:user) { sign_in_via_google(email: "a@example.com", uid: "signed-in-user") }
+  let(:user) { sign_in_via_google(email: "a@example.com") }
 
   before do
     allow(ENV).to receive(:[]).and_call_original
