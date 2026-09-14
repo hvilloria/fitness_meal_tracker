@@ -24,6 +24,20 @@ RSpec.describe "Goals", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "does not 500 on an array-shaped kcal query param" do
+    user
+    get edit_goal_path, params: { kcal: [ "x" ] }
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "does not 500 on a hash-shaped kcal query param" do
+    user
+    get edit_goal_path, params: { kcal: { a: 1 } }
+
+    expect(response).to have_http_status(:ok)
+  end
+
   it "creates the goal on first save and marks it default" do
     user
 

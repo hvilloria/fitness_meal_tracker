@@ -18,7 +18,7 @@ class GoalsController < ApplicationController
     # uses MacroSplit's evidence-backed default rather than leaving the form
     # blank; the user overwrites it from there.
     def build_seeded_goal
-      seed = MacroSplit.from_kcal(params[:kcal].to_i)
+      seed = MacroSplit.from_kcal(params[:kcal].to_s.to_i)
 
       current_user.goals.build(
         label: "Día normal",
