@@ -46,6 +46,58 @@ RSpec.describe "Foods", type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
   end
 
+  it "shows a real Spanish validation message rather than a missing-translation fallback" do
+    user
+
+    post foods_path, params: { food: { name: "", state: "as_sold" } }
+
+    expect(response.body).to include("no puede estar en blanco")
+    expect(response.body).not_to include("Translation missing")
+  end
+
+  it "rejects an out-of-range decimal instead of raising on save" do
+    user
+
+    expect {
+      post foods_path, params: {
+        food: {
+          name: "Fuera de rango", state: "as_sold",
+          kcal_per_100: "1234567.89", protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12
+        }
+      }
+    }.not_to raise_error
+
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(Food.where(name: "Fuera de rango")).not_to exist
+  end
+
+  it "accepts a comma as the decimal separator for a macro" do
+    user
+
+    post foods_path, params: {
+      food: {
+        name: "Coma decimal", state: "as_sold",
+        kcal_per_100: "220", protein_per_100: "12,5", carbs_per_100: 0, fat_per_100: 12
+      }
+    }
+
+    expect(Food.find_by(name: "Coma decimal").protein_per_100).to eq(12.5)
+  end
+
+  it "accepts a comma as the decimal separator for a serving's grams" do
+    user
+
+    post foods_path, params: {
+      food: {
+        name: "Porción con coma", state: "as_sold",
+        kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
+        servings_attributes: { "0" => { label: "1 feta", grams: "12,5", is_default: "1" } }
+      }
+    }
+
+    expect(Food.find_by(name: "Porción con coma").servings.first.grams).to eq(12.5)
+  end
+
   it "updates a food" do
     food = create(:food, user: user)
 

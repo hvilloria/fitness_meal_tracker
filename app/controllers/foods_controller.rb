@@ -1,4 +1,6 @@
 class FoodsController < ApplicationController
+  include NormalizesDecimalParams
+
   before_action :set_food, only: %i[edit update destroy]
 
   def index
@@ -44,11 +46,16 @@ class FoodsController < ApplicationController
     end
 
     def food_params
-      params.require(:food).permit(
+      permitted = params.require(:food).permit(
         :name, :brand, :state,
         :kcal_per_100, :protein_per_100, :carbs_per_100, :fat_per_100,
         :fiber_per_100, :sodium_per_100, :sugar_per_100,
         servings_attributes: %i[id label grams is_default _destroy]
       )
+      normalize_decimals(permitted,
+        :kcal_per_100, :protein_per_100, :carbs_per_100, :fat_per_100,
+        :fiber_per_100, :sodium_per_100, :sugar_per_100)
+      permitted[:servings_attributes]&.each_value { |serving| normalize_decimals(serving, :grams) }
+      permitted
     end
 end

@@ -1,4 +1,29 @@
 es:
+  errors:
+    messages:
+      blank: "no puede estar en blanco"
+      not_a_number: "no es un número"
+      greater_than: "debe ser mayor que %{count}"
+      greater_than_or_equal_to: "debe ser mayor o igual que %{count}"
+      less_than: "debe ser menor que %{count}"
+      taken: "ya está en uso"
+      inclusion: "no está incluido en la lista"
+  activerecord:
+    attributes:
+      food:
+        name: "Nombre"
+        brand: "Marca"
+        state: "Estado"
+        kcal_per_100: "Calorías"
+        protein_per_100: "Proteína"
+        carbs_per_100: "Carbohidratos"
+        fat_per_100: "Grasa"
+        fiber_per_100: "Fibra"
+        sodium_per_100: "Sodio"
+        sugar_per_100: "Azúcar"
+      serving:
+        label: "Etiqueta"
+        grams: "Gramos"
   food:
     states:
       raw: "Crudo"
