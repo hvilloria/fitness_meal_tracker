@@ -28,6 +28,11 @@ RSpec.describe MacroSplit, type: :model do
       expect(MacroSplit.percentages(protein_g: 0, carbs_g: 0, fat_g: 0))
         .to eq(protein: 0.0, carbs: 0.0, fat: 0.0)
     end
+
+    it "treats nil as zero" do
+      expect(MacroSplit.percentages(protein_g: nil, carbs_g: nil, fat_g: nil))
+        .to eq(protein: 0.0, carbs: 0.0, fat: 0.0)
+    end
   end
 
   describe ".from_kcal" do

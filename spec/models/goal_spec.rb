@@ -59,5 +59,23 @@ RSpec.describe Goal, type: :model do
 
       expect(other.reload.is_default).to be(true)
     end
+
+    it "allows each user to have their own default goal independently" do
+      other_user = create(:user)
+      user_default = create(:goal, user: user, is_default: true)
+      other_default = create(:goal, user: other_user, is_default: true)
+
+      expect(user.reload.default_goal).to eq(user_default)
+      expect(other_user.reload.default_goal).to eq(other_default)
+    end
+
+    it "is rejected by the database when the callback is bypassed via update_column" do
+      first = create(:goal, user: user, is_default: true)
+      second = create(:goal, user: user, is_default: false)
+
+      expect {
+        second.update_column(:is_default, true)
+      }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
   end
 end

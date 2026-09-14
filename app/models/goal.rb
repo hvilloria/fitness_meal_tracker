@@ -11,7 +11,7 @@ class Goal < ApplicationRecord
   # The calorie target is never entered directly: it is whatever the three
   # macros add up to. Moving any macro moves the total.
   before_validation :derive_kcal
-  after_save :clear_other_defaults, if: :is_default?
+  before_save :clear_other_defaults, if: :is_default?
 
   def percentages
     MacroSplit.percentages(protein_g: protein_g, carbs_g: carbs_g, fat_g: fat_g)
