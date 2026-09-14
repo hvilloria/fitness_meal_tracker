@@ -1835,7 +1835,7 @@ docker compose run --rm web bin/rails db:migrate
 docker compose run --rm web bin/rspec spec/models/entry_spec.rb
 ```
 
-Expected: PASS, 16 examples. If the "keeps its macros when the food is deleted" example fails with a foreign key violation, the `on_delete: :nullify` in the migration did not take — check it before changing the model.
+Expected: PASS, 15 examples. If the "keeps its macros when the food is deleted" example fails with a foreign key violation, the `on_delete: :nullify` in the migration did not take — check it before changing the model.
 
 - [ ] **Step 7: Run the whole suite and lint**
 
