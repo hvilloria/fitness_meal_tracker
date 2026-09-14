@@ -14,7 +14,7 @@
   <div class="card goal-total">
     <%= number_field_tag :kcal, @goal.kcal || 0, step: 1, inputmode: "numeric",
           class: "goal-total__value",
-          data: { macro_calculator_target: "kcal", action: "input->macro-calculator#distribute" } %>
+          data: { macro_calculator_target: "kcal", action: "change->macro-calculator#distribute" } %>
     <span class="muted">kcal objetivo</span>
   </div>
 

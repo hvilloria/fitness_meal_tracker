@@ -36,12 +36,16 @@ export default class extends Controller {
     if (this.hasFatPctTarget) this.fatPctTarget.textContent = this.percentage(fatKcal, total)
   }
 
-  // Total -> macro direction: bound ONLY to direct user input on the
-  // calorie field itself (see the view), never fired programmatically, so
-  // it cannot re-trigger itself through recalculate()'s writes. Preserves
-  // the macros' current percentage split when they are non-zero; falls
-  // back to MacroSplit::DEFAULT_PERCENTAGES (read from a data attribute,
-  // not retyped here) for a brand-new, all-zero goal.
+  // Total -> macro direction: bound ONLY to "change" on the calorie field
+  // itself (see the view), never "input" and never fired programmatically.
+  // "change" (blur/Enter) rather than "input" (every keystroke) matters
+  // for two reasons: it lets the user type a multi-digit figure without a
+  // mid-typing distribution rounding to a value that overwrites what they
+  // are still typing, and it means recalculate()'s write back into this
+  // same field (via setKcalDisplay) cannot re-trigger distribute().
+  // Preserves the macros' current percentage split when they are
+  // non-zero; falls back to MacroSplit::DEFAULT_PERCENTAGES (read from a
+  // data attribute, not retyped here) for a brand-new, all-zero goal.
   distribute() {
     const target = this.gramsFrom(this.kcalTarget)
 
