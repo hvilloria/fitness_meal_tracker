@@ -337,7 +337,7 @@ docker compose run --rm web bin/rails db:migrate
 docker compose run --rm web bin/rspec spec/models/user_spec.rb
 ```
 
-Expected: PASS, 9 examples.
+Expected: PASS, 8 examples.
 
 - [ ] **Step 7: Add the factory**
 
