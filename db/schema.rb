@@ -10,9 +10,28 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_153006) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_154627) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "foods", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "archived_at"
+    t.string "brand"
+    t.decimal "carbs_per_100", precision: 8, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.decimal "fat_per_100", precision: 8, scale: 2, null: false
+    t.decimal "fiber_per_100", precision: 8, scale: 2
+    t.decimal "kcal_per_100", precision: 8, scale: 2, null: false
+    t.string "name", null: false
+    t.decimal "protein_per_100", precision: 8, scale: 2, null: false
+    t.decimal "sodium_per_100", precision: 8, scale: 2
+    t.string "state", null: false
+    t.decimal "sugar_per_100", precision: 8, scale: 2
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["user_id", "name"], name: "index_foods_on_user_id_and_name"
+    t.index ["user_id"], name: "index_foods_on_user_id"
+  end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "avatar_url"
@@ -26,4 +45,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_153006) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true
   end
+
+  add_foreign_key "foods", "users"
 end

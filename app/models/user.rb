@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  has_many :foods, dependent: :destroy
+
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true
   validates :provider, :uid, presence: true
