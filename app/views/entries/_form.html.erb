@@ -13,15 +13,7 @@
   <div class="field">
     <%= form.label :food_id, "Alimento" %>
     <%= form.select :food_id,
-          recent_foods.map { |food|
-            [ food.display_name, food.id, {
-              data: {
-                kcal: food.kcal_per_100, protein: food.protein_per_100,
-                carbs: food.carbs_per_100, fat: food.fat_per_100,
-                last_grams: last_grams[food.id]
-              }
-            } ]
-          },
+          food_select_groups(recent_foods, other_foods, last_grams),
           { include_blank: "Elegí un alimento" },
           data: { entry_preview_target: "food", action: "change->entry-preview#foodChanged" } %>
   </div>

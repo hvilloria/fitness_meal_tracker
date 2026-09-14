@@ -92,12 +92,68 @@ RSpec.describe "Entries", type: :request do
     expect(response.body).to include("Pechuga de pollo")
   end
 
-  it "offers a food that has never been logged, not just recent ones" do
-    food = create(:food, user: user, name: "Pechuga de pollo")
+  describe "food select membership" do
+    it "offers a food that has never been logged, not just recent ones" do
+      food = create(:food, user: user, name: "Pechuga de pollo")
 
-    get new_entry_path
+      get new_entry_path
 
-    expect(response.body).to include(food.name)
+      expect(response.body).to include(food.name)
+    end
+
+    it "still offers a newly created food once another food has already been logged" do
+      logged = create(:food, user: user, name: "Pollo ya usado")
+      post entries_path, params: { entry: { food_id: logged.id, meal: "lunch", grams: 100 } }
+
+      new_food = create(:food, user: user, name: "Alimento nuevo")
+
+      get new_entry_path
+
+      expect(response.body).to include(new_food.name)
+    end
+
+    it "orders recently logged foods before the rest of the catalog" do
+      recent = create(:food, user: user, name: "Zapallo")
+      post entries_path, params: { entry: { food_id: recent.id, meal: "lunch", grams: 100 } }
+      other = create(:food, user: user, name: "Arroz")
+
+      get new_entry_path
+
+      body = response.body
+      expect(body.index(recent.name)).to be < body.index(other.name)
+    end
+
+    it "keeps a food reachable once it drops out of Food.recent_for's 20-item cap" do
+      dropped = create(:food, user: user, name: "Cayó del top 20")
+      travel_to(1.hour.ago) { post entries_path, params: { entry: { food_id: dropped.id, meal: "lunch", grams: 10 } } }
+
+      20.times do |i|
+        food = create(:food, user: user, name: "Reciente #{i}")
+        travel_to(i.minutes.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 10 } } }
+      end
+
+      expect(Food.recent_for(user)).not_to include(dropped)
+
+      get new_entry_path
+
+      expect(response.body).to include(dropped.name)
+    end
+
+    it "excludes an archived, never-logged food from the full-catalog group" do
+      archived = create(:food, user: user, name: "Archivado sin usar", archived_at: Time.current)
+
+      get new_entry_path
+
+      expect(response.body).not_to include(archived.name)
+    end
+
+    it "excludes an archived, previously-logged food from Food.recent_for" do
+      archived = create(:food, user: user, name: "Archivado reciente")
+      post entries_path, params: { entry: { food_id: archived.id, meal: "lunch", grams: 10 } }
+      archived.update!(archived_at: Time.current)
+
+      expect(Food.recent_for(user)).not_to include(archived)
+    end
   end
 
   it "carries the last weight used onto the food option" do
@@ -107,6 +163,14 @@ RSpec.describe "Entries", type: :request do
     get new_entry_path
 
     expect(response.body).to include("data-last-grams=\"190.0\"")
+  end
+
+  it "omits the last-weight data attribute for a food that has never been logged, rather than writing \"undefined\"" do
+    create(:food, user: user, name: "Nunca registrado")
+
+    get new_entry_path
+
+    expect(response.body).not_to include("data-last-grams=\"undefined\"")
   end
 
   it "accepts a comma as the decimal separator for grams" do

@@ -54,11 +54,13 @@ class EntriesController < ApplicationController
   private
     def load_food_options
       # Food.recent_for is an INNER JOIN on entries: a food that has never
-      # been logged returns nothing from it. Without this fallback, a food's
-      # first-ever appearance on the form would never happen — it would need
-      # to already be logged to be loggable. Fall back to the full active
-      # catalog so a brand new food is reachable the moment it is created.
-      @recent_foods = Food.recent_for(current_user).presence || current_user.foods.active.order(:name)
+      # been logged is invisible to it — not just a brand new user's first
+      # food, but every food a user creates after that, since recents lists
+      # only foods that already have at least one entry. Recents control
+      # ORDER, not membership: the select must always offer the full active
+      # catalog, with the habitually-eaten foods surfaced first.
+      @recent_foods = Food.recent_for(current_user).to_a
+      @other_foods = current_user.foods.active.where.not(id: @recent_foods.map(&:id)).order(:name)
       @last_grams = Food.last_grams_for(current_user)
     end
 

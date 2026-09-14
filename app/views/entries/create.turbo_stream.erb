@@ -11,7 +11,7 @@
     <% if @ad_hoc %>
       <%= render "ad_hoc_form", entry: @fresh_entry %>
     <% else %>
-      <%= render "form", entry: @fresh_entry, recent_foods: @recent_foods, last_grams: @last_grams %>
+      <%= render "form", entry: @fresh_entry, recent_foods: @recent_foods, other_foods: @other_foods, last_grams: @last_grams %>
     <% end %>
   </div>
 <% end %>
