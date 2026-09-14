@@ -18,6 +18,33 @@ class Food < ApplicationRecord
 
   scope :active, -> { where(archived_at: nil) }
 
+  # Ordered by how often the food was logged recently, then by how recently.
+  # This is the whole of the friction reduction in this iteration: the foods
+  # eaten daily sit at the top of the entry form without a search.
+  def self.recent_for(user, limit: 20)
+    active
+      .joins(entries: :day_log)
+      .where(day_logs: { user_id: user.id })
+      .reorder(nil)
+      .group(:id)
+      .order(Arel.sql("COUNT(entries.id) DESC, MAX(entries.logged_at) DESC"))
+      .limit(limit)
+      .load
+  end
+
+  # One row per food, carrying the weight used most recently. Prefilling the
+  # entry form with it means a habitual 190 g of chicken is not retyped daily.
+  def self.last_grams_for(user)
+    Entry
+      .joins(:day_log)
+      .where(day_logs: { user_id: user.id })
+      .where.not(food_id: nil)
+      .reorder(nil)
+      .order(:food_id, logged_at: :desc)
+      .select("DISTINCT ON (entries.food_id) entries.food_id, entries.grams")
+      .to_h { |entry| [ entry.food_id, entry.grams ] }
+  end
+
   def default_serving
     servings.find_by(is_default: true)
   end
