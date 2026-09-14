@@ -40,6 +40,6 @@ class GoalsController < ApplicationController
     end
 
     def goal_params
-      params.require(:goal).permit(:label, :protein_g, :carbs_g, :fat_g)
+      require_params_hash(:goal).permit(:label, :protein_g, :carbs_g, :fat_g)
     end
 end

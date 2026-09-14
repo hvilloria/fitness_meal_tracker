@@ -33,6 +33,18 @@ RSpec.describe "Entries", type: :request do
     expect(entry.serving_label).to eq("2 × 1 feta")
   end
 
+  it "keeps the serving label consistent with a fractional quantity" do
+    food = create(:food, user: user)
+    serving = create(:serving, food: food, label: "1 feta", grams: 30)
+
+    post entries_path,
+      params: { entry: { food_id: food.id, meal: "snack", serving_id: serving.id, quantity: "0,5" } }
+
+    entry = Entry.last
+    expect(entry.grams).to eq(15)
+    expect(entry.serving_label).to eq("0.5 × 1 feta")
+  end
+
   it "logs an ad-hoc entry from typed macros" do
     post entries_path, params: {
       entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 100, carbs_g: 100, fat_g: 100 }
@@ -170,5 +182,70 @@ RSpec.describe "Entries", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).to include('name="entry[food_name_snapshot]"')
     end
+  end
+
+  describe "decimal(8, 2) overflow" do
+    it "rejects an ad-hoc macro that is out of range instead of raising on save" do
+      expect {
+        post entries_path, params: {
+          entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: "9999999", carbs_g: 10, fat_g: 10 }
+        }
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(Entry.count).to eq(0)
+    end
+
+    it "rejects a catalog weight whose derived kcal would overflow, even though grams itself is in range" do
+      food = create(:food, user: user, kcal_per_100: 900, protein_per_100: 0, carbs_per_100: 0, fat_per_100: 100)
+
+      expect {
+        post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: "999999" } }
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(Entry.count).to eq(0)
+    end
+  end
+
+  it "orders today's entries chronologically, not by the per-meal position that collides across meals" do
+    food = create(:food, user: user)
+
+    travel_to(2.hours.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "breakfast", grams: 11 } } }
+    travel_to(1.hour.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "breakfast", grams: 22 } } }
+    travel_to(30.minutes.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 33 } } }
+
+    get new_entry_path
+
+    body = response.body
+    positions = [ body.index("11 g"), body.index("22 g"), body.index("33 g") ]
+
+    expect(positions).to all(be_present)
+    expect(positions).to eq(positions.sort)
+  end
+
+  it "does not 500 on an invalid submission accepted only as text/vnd.turbo-stream.html" do
+    post entries_path,
+      params: { entry: { meal: "dinner", protein_g: 100, carbs_g: 100, fat_g: 100 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
+  it "resets the form after a successful Turbo save instead of keeping the logged item" do
+    food = create(:food, user: user, name: "Pechuga de pollo")
+
+    post entries_path,
+      params: { entry: { food_id: food.id, meal: "lunch", grams: 190 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include('id="entry_form"')
+    expect(response.body).not_to include('value="190"')
+  end
+
+  it "does not 500 when the entry param arrives as a bare scalar" do
+    post entries_path, params: { entry: "boom" }
+
+    expect(response).to have_http_status(:bad_request)
   end
 end

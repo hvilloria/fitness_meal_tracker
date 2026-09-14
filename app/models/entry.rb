@@ -10,11 +10,14 @@ class Entry < ApplicationRecord
   enum :meal, MEALS.index_with(&:itself), validate: true
 
   validates :food_name_snapshot, presence: true
-  validates :grams, numericality: { greater_than: 0 }, allow_nil: true
+  validates :grams, numericality: { greater_than: 0, less_than: DECIMAL_COLUMN_LIMIT }, allow_nil: true
   validates :grams, presence: true, if: :from_catalog?
   validates :protein_g, :carbs_g, :fat_g, presence: true, unless: :from_catalog?
+  # kcal is derived, not typed in: bounding only the inputs (grams, or the
+  # typed macros) is not enough, because grams * a food's per-100g kcal can
+  # still overflow decimal(8, 2) even when grams itself is in range.
   validates :kcal, :protein_g, :carbs_g, :fat_g,
-    numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+    numericality: { greater_than_or_equal_to: 0, less_than: DECIMAL_COLUMN_LIMIT }, allow_nil: true
 
   before_validation :set_logged_at
   before_validation :set_position, on: :create

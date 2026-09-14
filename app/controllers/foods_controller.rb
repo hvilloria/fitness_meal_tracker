@@ -46,7 +46,7 @@ class FoodsController < ApplicationController
     end
 
     def food_params
-      permitted = params.require(:food).permit(
+      permitted = require_params_hash(:food).permit(
         :name, :brand, :state,
         :kcal_per_100, :protein_per_100, :carbs_per_100, :fat_per_100,
         :fiber_per_100, :sodium_per_100, :sugar_per_100,

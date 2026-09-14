@@ -1,9 +1,9 @@
 class Serving < ApplicationRecord
   belongs_to :food
 
-  # decimal(8, 2) holds at most 999999.99; see Food::DECIMAL_COLUMN_LIMIT.
+  # decimal(8, 2) holds at most 999999.99; see ApplicationRecord::DECIMAL_COLUMN_LIMIT.
   validates :label, presence: true
-  validates :grams, numericality: { greater_than: 0, less_than: Food::DECIMAL_COLUMN_LIMIT }
+  validates :grams, numericality: { greater_than: 0, less_than: DECIMAL_COLUMN_LIMIT }
 
   before_save :clear_other_defaults, if: :is_default?
 

@@ -10,11 +10,6 @@ class Food < ApplicationRecord
 
   accepts_nested_attributes_for :servings, allow_destroy: true, reject_if: :all_blank
 
-  # decimal(8, 2) columns hold at most 999999.99; without this bound an
-  # out-of-range value passes validation and raises ActiveRecord::RangeError
-  # on save instead of failing the form.
-  DECIMAL_COLUMN_LIMIT = 1_000_000
-
   validates :name, presence: true
   validates :state, presence: true, inclusion: { in: STATES }
   validates(*MACRO_FIELDS, presence: true,

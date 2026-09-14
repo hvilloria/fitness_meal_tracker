@@ -21,7 +21,13 @@ class EntriesController < ApplicationController
 
     if @entry.save
       respond_to do |format|
-        format.turbo_stream
+        # The form stays open for the next item in the same meal, so it must
+        # reset rather than keep showing the food/grams that were just
+        # logged — otherwise a stale preview invites a double log.
+        format.turbo_stream do
+          @fresh_entry = Entry.new(meal: @entry.meal)
+          load_food_options unless @ad_hoc
+        end
         format.html { redirect_to new_entry_path(meal: @entry.meal), notice: "Registrado." }
       end
     else
@@ -31,7 +37,11 @@ class EntriesController < ApplicationController
       # form doesn't try to render it (it has no id yet, so entry_path
       # would fail to generate a route for it).
       @day_log.entries.reload
-      render :new, status: :unprocessable_entity
+      # Turbo can request this response with only the turbo-stream media
+      # type accepted; there is no entries/new.turbo_stream.erb (and should
+      # not be one — a full form re-render belongs in HTML), so force the
+      # format explicitly rather than letting content negotiation 500.
+      render :new, formats: :html, status: :unprocessable_entity
     end
   end
 
@@ -52,7 +62,11 @@ class EntriesController < ApplicationController
       food = find_food(entry_params[:food_id])
       return attributes.merge(food: nil) if food.nil?
 
-      attributes.merge(food: food, **serving_resolution(food))
+      # The catalog is the source of truth for a catalog entry: typed macros
+      # and a typed name are dropped by construction, not merely overwritten
+      # because grams happens to be required too.
+      attributes.except(:protein_g, :carbs_g, :fat_g, :food_name_snapshot)
+        .merge(food: food, **serving_resolution(food))
     end
 
     # A serving is a multiplier, never a source of macros: it resolves to
@@ -64,7 +78,11 @@ class EntriesController < ApplicationController
       quantity = entry_params[:quantity].to_d
       quantity = 1 if quantity.zero?
 
-      { grams: serving.grams * quantity, serving_label: "#{quantity.to_i} × #{serving.label}" }
+      # The label is frozen history: it must never disagree with the grams
+      # stored beside it, so it renders the exact quantity chosen (2, 0.5),
+      # not an integer truncation of it.
+      formatted_quantity = helpers.number_with_precision(quantity, precision: 2, strip_insignificant_zeros: true)
+      { grams: serving.grams * quantity, serving_label: "#{formatted_quantity} × #{serving.label}" }
     end
 
     def find_food(food_id)
@@ -74,12 +92,14 @@ class EntriesController < ApplicationController
     end
 
     def entry_params
-      permitted = params.require(:entry).permit(
-        :food_id, :meal, :grams, :serving_id, :quantity,
-        :food_name_snapshot, :protein_g, :carbs_g, :fat_g
-      )
-      normalize_decimals(permitted, :grams, :protein_g, :carbs_g, :fat_g, :quantity)
-      permitted
+      @entry_params ||= begin
+        permitted = require_params_hash(:entry).permit(
+          :food_id, :meal, :grams, :serving_id, :quantity,
+          :food_name_snapshot, :protein_g, :carbs_g, :fat_g
+        )
+        normalize_decimals(permitted, :grams, :protein_g, :carbs_g, :fat_g, :quantity)
+        permitted
+      end
     end
 
     def redirect_to_goal

@@ -104,6 +104,13 @@ RSpec.describe "Goals", type: :request do
     expect(winner.reload.protein_g).to eq(190)
   end
 
+  it "does not 500 when the goal param arrives as a bare scalar" do
+    user
+    patch goal_path, params: { goal: "boom" }
+
+    expect(response).to have_http_status(:bad_request)
+  end
+
   it "redirects to the day after saving" do
     user
     patch goal_path, params: { goal: { label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78 } }

@@ -133,6 +133,14 @@ RSpec.describe "Foods", type: :request do
     expect(Food.count).to eq(1)
   end
 
+  it "does not 500 when the food param arrives as a bare scalar" do
+    user
+
+    post foods_path, params: { food: "boom" }
+
+    expect(response).to have_http_status(:bad_request)
+  end
+
   it "refuses to touch another user's food" do
     user
     other = create(:food)

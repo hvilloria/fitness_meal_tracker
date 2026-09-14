@@ -9,5 +9,6 @@
       G <%= number_with_precision(entry.fat_g, precision: 1) %>
     </div>
   </div>
-  <%= button_to "Borrar", entry_path(entry), method: :delete, class: "button" %>
+  <%= button_to "Borrar", entry_path(entry), method: :delete, class: "button",
+        data: { turbo_confirm: "¿Borrar?" } %>
 </div>
