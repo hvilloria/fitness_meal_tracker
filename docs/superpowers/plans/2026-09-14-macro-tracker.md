@@ -1085,9 +1085,11 @@ RSpec.describe Goal, type: :model do
 
     it "follows a macro change" do
       goal = create(:goal, protein_g: 144, carbs_g: 325, fat_g: 69)
+      expect(goal.kcal).to eq(2497)
+
       goal.update!(protein_g: 180)
 
-      expect(goal.kcal).to eq(2601)
+      expect(goal.kcal).to eq(2641)
     end
   end
 
@@ -3283,8 +3285,8 @@ git commit -m "Add entry logging that keeps the form open between items"
 ### Task 13: The day dashboard
 
 **Files:**
-- Modify: `app/controllers/days_controller.rb`
 - Replace: `app/views/days/show.html.erb`
+- (`app/controllers/days_controller.rb` is already correct from Task 6 — this task changes the view only)
 - Create: `app/views/days/_ring.html.erb`, `app/views/days/_meal.html.erb`
 - Create: `app/helpers/days_helper.rb`
 - Modify: `app/assets/stylesheets/_components.scss`
