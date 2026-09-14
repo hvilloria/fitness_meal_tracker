@@ -1,0 +1,9 @@
+<% content_for :title, "Agregar comida" %>
+<h1>Agregar</h1>
+
+<%= render "form", entry: @entry, recent_foods: @recent_foods, last_grams: @last_grams %>
+
+<h2>Registrado hoy</h2>
+<div id="logged_entries" class="stack">
+  <%= render @day_log.entries %>
+</div>

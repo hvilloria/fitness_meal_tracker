@@ -34,6 +34,13 @@ es:
         protein_g: "Proteína"
         carbs_g: "Carbohidratos"
         fat_g: "Grasa"
+      entry:
+        meal: "Comida"
+        grams: "Peso"
+        food_name_snapshot: "Nombre"
+        protein_g: "Proteína"
+        carbs_g: "Carbohidratos"
+        fat_g: "Grasa"
   food:
     states:
       raw: "Crudo"

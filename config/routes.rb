@@ -9,6 +9,7 @@ Rails.application.routes.draw do
 
   resource :goal, only: %i[edit update]
   resources :foods
+  resources :entries, only: %i[new create destroy]
 
   root "days#show"
 end

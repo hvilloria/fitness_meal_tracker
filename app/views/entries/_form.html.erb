@@ -1,0 +1,47 @@
+<%= form_with model: entry, url: entries_path, class: "stack",
+      data: { controller: "entry-preview", action: "input->entry-preview#preview change->entry-preview#preview" } do |form| %>
+
+  <% if entry.errors.any? %>
+    <div class="flash flash--alert"><%= entry.errors.full_messages.to_sentence %></div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :meal, "Comida" %>
+    <%= form.select :meal, Entry::MEALS.map { |meal| [ t("meals.#{meal}"), meal ] } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :food_id, "Alimento" %>
+    <%= form.select :food_id,
+          recent_foods.map { |food|
+            [ food.display_name, food.id, {
+              data: {
+                kcal: food.kcal_per_100, protein: food.protein_per_100,
+                carbs: food.carbs_per_100, fat: food.fat_per_100,
+                last_grams: last_grams[food.id]
+              }
+            } ]
+          },
+          { include_blank: "Elegí un alimento" },
+          data: { entry_preview_target: "food", action: "change->entry-preview#foodChanged" } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :grams, "Peso (g)" %>
+    <%= form.number_field :grams, step: :any, inputmode: "decimal",
+          data: { entry_preview_target: "grams" } %>
+  </div>
+
+  <div class="card">
+    <strong><span data-entry-preview-target="kcal">0</span> kcal</strong>
+    <div class="muted">
+      P <span data-entry-preview-target="protein">0</span> ·
+      C <span data-entry-preview-target="carbs">0</span> ·
+      G <span data-entry-preview-target="fat">0</span>
+    </div>
+  </div>
+
+  <%= form.submit "Agregar", class: "button button--primary" %>
+<% end %>
+
+<p><%= link_to "Cargar algo que no está en el catálogo", new_entry_path(ad_hoc: true) %></p>

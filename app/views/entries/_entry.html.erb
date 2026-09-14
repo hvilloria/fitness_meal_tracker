@@ -1,0 +1,13 @@
+<div class="card row" style="justify-content: space-between;" id="<%= dom_id(entry) %>">
+  <div>
+    <strong><%= entry.food_name_snapshot %></strong>
+    <div class="muted">
+      <%= entry.serving_label.presence || (entry.grams ? "#{number_with_precision(entry.grams, precision: 0)} g" : "—") %> ·
+      <%= number_with_precision(entry.kcal, precision: 0) %> kcal ·
+      P <%= number_with_precision(entry.protein_g, precision: 1) %> ·
+      C <%= number_with_precision(entry.carbs_g, precision: 1) %> ·
+      G <%= number_with_precision(entry.fat_g, precision: 1) %>
+    </div>
+  </div>
+  <%= button_to "Borrar", entry_path(entry), method: :delete, class: "button" %>
+</div>
