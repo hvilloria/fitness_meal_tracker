@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_161315) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_162434) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_161315) do
     t.index ["goal_id"], name: "index_day_logs_on_goal_id"
     t.index ["user_id", "date"], name: "index_day_logs_on_user_id_and_date", unique: true
     t.index ["user_id"], name: "index_day_logs_on_user_id"
+  end
+
+  create_table "entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.decimal "carbs_g", precision: 8, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.uuid "day_log_id", null: false
+    t.decimal "fat_g", precision: 8, scale: 2, null: false
+    t.uuid "food_id"
+    t.string "food_name_snapshot", null: false
+    t.decimal "grams", precision: 8, scale: 2
+    t.decimal "kcal", precision: 8, scale: 2, null: false
+    t.datetime "logged_at", null: false
+    t.string "meal", null: false
+    t.integer "position", default: 0, null: false
+    t.decimal "protein_g", precision: 8, scale: 2, null: false
+    t.string "serving_label"
+    t.datetime "updated_at", null: false
+    t.index ["day_log_id", "meal", "position"], name: "index_entries_on_day_log_id_and_meal_and_position"
+    t.index ["day_log_id"], name: "index_entries_on_day_log_id"
+    t.index ["food_id"], name: "index_entries_on_food_id"
   end
 
   create_table "foods", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -86,6 +106,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_161315) do
 
   add_foreign_key "day_logs", "goals"
   add_foreign_key "day_logs", "users"
+  add_foreign_key "entries", "day_logs"
+  add_foreign_key "entries", "foods", on_delete: :nullify
   add_foreign_key "foods", "users"
   add_foreign_key "goals", "users"
   add_foreign_key "servings", "foods"

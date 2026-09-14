@@ -35,7 +35,9 @@ class DayLog < ApplicationRecord
 
   def totals
     @totals ||= begin
-      sums = entries.pick(
+      # The association's default order(:meal, :position) scope isn't valid
+      # in an aggregate query without a matching GROUP BY; drop it here.
+      sums = entries.reorder(nil).pick(
         Arel.sql("COALESCE(SUM(kcal), 0)"),
         Arel.sql("COALESCE(SUM(protein_g), 0)"),
         Arel.sql("COALESCE(SUM(carbs_g), 0)"),
