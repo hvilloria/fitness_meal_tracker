@@ -55,7 +55,20 @@ class FoodsController < ApplicationController
       normalize_decimals(permitted,
         :kcal_per_100, :protein_per_100, :carbs_per_100, :fat_per_100,
         :fiber_per_100, :sodium_per_100, :sugar_per_100)
-      permitted[:servings_attributes]&.each_value { |serving| normalize_decimals(serving, :grams) }
+      normalize_nested_servings(permitted)
+      permitted
+    end
+
+    # accepts_nested_attributes_for permits servings_attributes both as the
+    # index-keyed Hash this app's own fields_for generates ({"0" => {...}})
+    # and as an Array of hashes ([{...}]) — a raw HTTP client can send either.
+    # Handle both explicitly rather than assuming the Hash shape.
+    def normalize_nested_servings(permitted)
+      nested = permitted[:servings_attributes]
+      return permitted if nested.blank?
+
+      entries = nested.respond_to?(:each_value) ? nested.each_value : nested
+      entries.each { |serving| normalize_decimals(serving, :grams) if serving.respond_to?(:[]=) }
       permitted
     end
 end

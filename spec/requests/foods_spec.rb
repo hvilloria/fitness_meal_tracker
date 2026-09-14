@@ -84,7 +84,7 @@ RSpec.describe "Foods", type: :request do
     expect(Food.find_by(name: "Coma decimal").protein_per_100).to eq(12.5)
   end
 
-  it "accepts a comma as the decimal separator for a serving's grams" do
+  it "accepts a comma as the decimal separator for a serving's grams (index-keyed hash shape)" do
     user
 
     post foods_path, params: {
@@ -96,6 +96,24 @@ RSpec.describe "Foods", type: :request do
     }
 
     expect(Food.find_by(name: "Porción con coma").servings.first.grams).to eq(12.5)
+  end
+
+  it "accepts a comma as the decimal separator for a serving's grams (array shape)" do
+    user
+
+    # accepts_nested_attributes_for permits an array of hashes as well as the
+    # index-keyed hash that this app's own fields_for generates; a raw HTTP
+    # client (not the rendered form) can send this shape.
+    post foods_path, params: {
+      food: {
+        name: "Porción con coma en array", state: "as_sold",
+        kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
+        servings_attributes: [ { label: "1 feta", grams: "12,5", is_default: "1" } ]
+      }
+    }
+
+    expect(response).not_to have_http_status(:internal_server_error)
+    expect(Food.find_by(name: "Porción con coma en array").servings.first.grams).to eq(12.5)
   end
 
   it "updates a food" do
