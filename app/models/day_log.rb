@@ -56,11 +56,13 @@ class DayLog < ApplicationRecord
   # May be negative, and is displayed that way. A day over the goal is
   # information, not an error to hide at zero.
   def remaining
+    current = totals
+
     {
-      kcal: goal.kcal - totals[:kcal],
-      protein_g: goal.protein_g - totals[:protein_g],
-      carbs_g: goal.carbs_g - totals[:carbs_g],
-      fat_g: goal.fat_g - totals[:fat_g]
+      kcal: goal.kcal - current[:kcal],
+      protein_g: goal.protein_g - current[:protein_g],
+      carbs_g: goal.carbs_g - current[:carbs_g],
+      fat_g: goal.fat_g - current[:fat_g]
     }
   end
 
