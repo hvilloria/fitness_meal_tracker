@@ -3292,7 +3292,7 @@ git commit -m "Add entry logging that keeps the form open between items"
 - Create: `app/views/days/_ring.html.erb`, `app/views/days/_meal.html.erb`
 - Create: `app/helpers/days_helper.rb`
 - Modify: `app/assets/stylesheets/_components.scss`
-- Test: `spec/requests/days_spec.rb`, `spec/helpers/days_helper_spec.rb`
+- Test: `spec/helpers/days_helper_spec.rb` (create), `spec/requests/days_spec.rb` (extend — Task 6's fix round created it)
 
 **Interfaces:**
 - Consumes: `DayLog#totals`, `#remaining`, `#entries_for` (Task 6), `Entry::MEALS` (Task 7).
@@ -3328,7 +3328,7 @@ end
 
 - [ ] **Step 2: Write the failing request test**
 
-Create `spec/requests/days_spec.rb`:
+`spec/requests/days_spec.rb` already exists from Task 6's fix round, covering the missing-goal redirect and hostile `params[:date]` input. ADD the dashboard examples below to it; do not overwrite what is there:
 
 ```ruby
 require "rails_helper"
