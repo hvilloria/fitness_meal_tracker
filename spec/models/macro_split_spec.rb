@@ -15,6 +15,21 @@ RSpec.describe MacroSplit, type: :model do
     end
   end
 
+  describe ".kcal_from_exact" do
+    it "keeps two decimals rather than rounding to an Integer" do
+      result = MacroSplit.kcal_from_exact(protein_g: 10.55, carbs_g: 3.33, fat_g: 4.31)
+
+      expect(result).to eq(94.31)
+      expect(result).to be_a(BigDecimal)
+    end
+
+    it "matches kcal_from once rounded" do
+      exact = MacroSplit.kcal_from_exact(protein_g: 180, carbs_g: 220, fat_g: 78)
+
+      expect(exact.round).to eq(MacroSplit.kcal_from(protein_g: 180, carbs_g: 220, fat_g: 78))
+    end
+  end
+
   describe ".percentages" do
     it "reports each macro's share of the total" do
       result = MacroSplit.percentages(protein_g: 180, carbs_g: 220, fat_g: 78)

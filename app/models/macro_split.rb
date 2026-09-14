@@ -14,10 +14,17 @@ class MacroSplit
   DEFAULT_PERCENTAGES = { protein: 0.25, carbs: 0.50, fat: 0.25 }.freeze
 
   class << self
+    # Rounded to an Integer, for callers backed by an integer column (Goal#kcal).
     def kcal_from(protein_g:, carbs_g:, fat_g:)
-      (protein_g.to_f * PROTEIN_KCAL_PER_G +
-        carbs_g.to_f * CARBS_KCAL_PER_G +
-        fat_g.to_f * FAT_KCAL_PER_G).round
+      kcal_from_exact(protein_g: protein_g, carbs_g: carbs_g, fat_g: fat_g).round
+    end
+
+    # Exact, to two decimals, for callers that store fractional kcal (Entry)
+    # and must not accumulate rounding drift across many rows.
+    def kcal_from_exact(protein_g:, carbs_g:, fat_g:)
+      (protein_g.to_d * PROTEIN_KCAL_PER_G +
+        carbs_g.to_d * CARBS_KCAL_PER_G +
+        fat_g.to_d * FAT_KCAL_PER_G).round(2)
     end
 
     def percentages(protein_g:, carbs_g:, fat_g:)

@@ -5,7 +5,11 @@ class DayLog < ApplicationRecord
 
   belongs_to :user
   belongs_to :goal
-  has_many :entries, -> { order(:meal, :position) }, dependent: :destroy, inverse_of: :day_log
+  # Ordered by position within the day, not by :meal — meal is a string enum
+  # and would sort alphabetically (breakfast, dinner, lunch, snack). Views
+  # that need meal grouping must use Entry::MEALS with #entries_for, never
+  # rely on this association's order for that.
+  has_many :entries, -> { order(:position, :logged_at) }, dependent: :destroy, inverse_of: :day_log
 
   validates :date, presence: true, uniqueness: { scope: :user_id }
 
@@ -33,19 +37,20 @@ class DayLog < ApplicationRecord
     end
   end
 
+  # Not memoised: a SUM over a handful of rows doesn't need caching, and a
+  # controller that creates an entry and then renders totals in the same
+  # request needs this to see it.
   def totals
-    @totals ||= begin
-      # The association's default order(:meal, :position) scope isn't valid
-      # in an aggregate query without a matching GROUP BY; drop it here.
-      sums = entries.reorder(nil).pick(
-        Arel.sql("COALESCE(SUM(kcal), 0)"),
-        Arel.sql("COALESCE(SUM(protein_g), 0)"),
-        Arel.sql("COALESCE(SUM(carbs_g), 0)"),
-        Arel.sql("COALESCE(SUM(fat_g), 0)")
-      ) || [ 0, 0, 0, 0 ]
+    # The association's default order(:position, :logged_at) scope isn't
+    # valid in an aggregate query without a matching GROUP BY; drop it here.
+    sums = entries.reorder(nil).pick(
+      Arel.sql("COALESCE(SUM(kcal), 0)"),
+      Arel.sql("COALESCE(SUM(protein_g), 0)"),
+      Arel.sql("COALESCE(SUM(carbs_g), 0)"),
+      Arel.sql("COALESCE(SUM(fat_g), 0)")
+    ) || [ 0, 0, 0, 0 ]
 
-      { kcal: sums[0].to_f, protein_g: sums[1].to_f, carbs_g: sums[2].to_f, fat_g: sums[3].to_f }
-    end
+    { kcal: sums[0].to_f, protein_g: sums[1].to_f, carbs_g: sums[2].to_f, fat_g: sums[3].to_f }
   end
 
   # May be negative, and is displayed that way. A day over the goal is

@@ -52,6 +52,16 @@ RSpec.describe Entry, type: :model do
       expect(entry.protein_g).to eq(10.8)
     end
 
+    it "keeps its macros when an orphaned entry is later edited" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+      food.destroy
+      entry.reload
+
+      entry.update!(position: 3)
+
+      expect(entry.reload.kcal).to eq(88.0)
+    end
+
     it "picks up corrections only through an explicit recalculate!" do
       entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
       food.update!(protein_per_100: 50)
@@ -59,6 +69,32 @@ RSpec.describe Entry, type: :model do
       entry.recalculate!
 
       expect(entry.protein_g).to eq(20.0)
+    end
+
+    it "keeps its macros when an unrelated field is edited" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+      food.update!(protein_per_100: 50)
+
+      entry.update!(position: 7)
+
+      expect(entry.reload.protein_g).to eq(10.8)
+    end
+
+    it "keeps its name when an unrelated field is edited" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+      food.update!(name: "Queso Port Salut")
+
+      entry.update!(position: 3)
+
+      expect(entry.reload.food_name_snapshot).to eq("Port Salut light (La Serenísima)")
+    end
+
+    it "raises rather than silently re-deriving when recalculate! is called on an orphan" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+      food.destroy
+      entry.reload
+
+      expect { entry.recalculate! }.to raise_error(/Cannot recalculate/)
     end
   end
 
@@ -76,6 +112,12 @@ RSpec.describe Entry, type: :model do
       entry = build(:entry, :ad_hoc, day_log: day_log, grams: nil)
 
       expect(entry).to be_valid
+    end
+
+    it "rejects a negative weight even though it is optional" do
+      entry = build(:entry, :ad_hoc, day_log: day_log, grams: -5)
+
+      expect(entry).not_to be_valid
     end
 
     it "requires a name" do
