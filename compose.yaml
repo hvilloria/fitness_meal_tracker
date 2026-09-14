@@ -42,6 +42,22 @@ services:
     stdin_open: true
     tty: true
 
+  css:
+    build:
+      context: .
+      target: development
+    command: bin/rails dartsass:watch
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - .:/rails
+      - bundle:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   bundle:

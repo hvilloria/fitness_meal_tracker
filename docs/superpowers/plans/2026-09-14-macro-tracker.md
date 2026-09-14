@@ -122,7 +122,9 @@ RSpec.describe ApplicationRecord, type: :model do
   end
 
   it "stores timestamps in UTC" do
-    expect(ActiveRecord::Base.default_timezone).to eq(:utc)
+    # ActiveRecord.default_timezone, not ActiveRecord::Base.default_timezone —
+    # the latter was deprecated in Rails 7.0 and removed in 7.1.
+    expect(ActiveRecord.default_timezone).to eq(:utc)
   end
 end
 ```
