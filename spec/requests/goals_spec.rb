@@ -74,7 +74,7 @@ RSpec.describe "Goals", type: :request do
     user
     patch goal_path, params: { goal: { label: "", protein_g: -5 } }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
   end
 
   it "joins multiple validation errors with the Spanish connector, not the English one" do

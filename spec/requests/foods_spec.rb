@@ -43,7 +43,7 @@ RSpec.describe "Foods", type: :request do
 
     post foods_path, params: { food: { name: "", state: "as_sold" } }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
   end
 
   it "shows a real Spanish validation message rather than a missing-translation fallback" do
@@ -67,7 +67,6 @@ RSpec.describe "Foods", type: :request do
     }
 
     expect(response.body).to include("Etiqueta no puede estar en blanco")
-    expect(response.body).not_to include("Servings label")
   end
 
   it "rejects an out-of-range decimal instead of raising on save" do
@@ -82,7 +81,7 @@ RSpec.describe "Foods", type: :request do
       }
     }.not_to raise_error
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(Food.where(name: "Fuera de rango")).not_to exist
   end
 

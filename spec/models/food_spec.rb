@@ -48,6 +48,16 @@ RSpec.describe Food, type: :model do
       expect(build(:food, name: "Pollo", brand: "Granja Sol", state: "cooked").display_name)
         .to eq("Pollo (Granja Sol, cocido)")
     end
+
+    it "treats a blank brand (the form's optional field posts \"\", not nil) the same as no brand" do
+      expect(build(:food, name: "Arroz", brand: "", state: "as_sold").display_name)
+        .to eq("Arroz")
+    end
+
+    it "does not let a blank brand leave a stray separator alongside the state" do
+      expect(build(:food, name: "Pollo", brand: "", state: "raw").display_name)
+        .to eq("Pollo (crudo)")
+    end
   end
 
   describe ".active" do

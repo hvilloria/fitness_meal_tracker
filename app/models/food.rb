@@ -54,7 +54,11 @@ class Food < ApplicationRecord
   # as_sold is left off — it is the unmarked default state (packaged food,
   # eaten as-is) and naming it on every such food would be noise.
   def display_name
-    extras = [ brand, state_label ].compact
+    # compact_blank, not compact: the food form's brand field is optional
+    # and posts "" rather than nil, and nothing normalises that to nil —
+    # a bare compact would let an empty brand through as a stray ", " or
+    # empty parens.
+    extras = [ brand, state_label ].compact_blank
     extras.any? ? "#{name} (#{extras.join(", ")})" : name
   end
 

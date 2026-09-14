@@ -165,12 +165,14 @@ RSpec.describe "Entries", type: :request do
     expect(response.body).to include("data-last-grams=\"190.0\"")
   end
 
-  it "omits the last-weight data attribute for a food that has never been logged, rather than writing \"undefined\"" do
-    create(:food, user: user, name: "Nunca registrado")
+  it "omits the last-weight data attribute for a food that has never been logged" do
+    food = create(:food, user: user, name: "Nunca registrado")
 
     get new_entry_path
 
-    expect(response.body).not_to include("data-last-grams=\"undefined\"")
+    tag = response.body[/<option[^>]*value="#{food.id}"[^>]*>/]
+    expect(tag).to include("data-kcal=")
+    expect(tag).not_to include("last-grams")
   end
 
   it "accepts a comma as the decimal separator for grams" do
@@ -250,7 +252,7 @@ RSpec.describe "Entries", type: :request do
         post entries_path, params: { entry: { meal: "dinner", protein_g: 100, carbs_g: 100, fat_g: 100 } }
       }.not_to change(Entry, :count)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include('name="entry[food_name_snapshot]"')
     end
   end
@@ -263,7 +265,7 @@ RSpec.describe "Entries", type: :request do
         }
       }.not_to raise_error
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Entry.count).to eq(0)
     end
 
@@ -274,7 +276,7 @@ RSpec.describe "Entries", type: :request do
         post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: "999999" } }
       }.not_to raise_error
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(Entry.count).to eq(0)
     end
   end
@@ -300,7 +302,7 @@ RSpec.describe "Entries", type: :request do
       params: { entry: { meal: "dinner", protein_g: 100, carbs_g: 100, fat_g: 100 } },
       headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
   end
 
   it "resets the form after a successful Turbo save instead of keeping the logged item" do

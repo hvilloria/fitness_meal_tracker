@@ -129,6 +129,23 @@ RSpec.describe Entry, type: :model do
       expect(entry).to be_valid
     end
 
+    it "leaves an edited ad-hoc entry's kcal frozen — a future edit form must call recalculate! or drop this guard" do
+      entry = Entry.create!(
+        day_log: day_log, meal: "dinner", food_name_snapshot: "Pizza muzza",
+        protein_g: 10, carbs_g: 10, fat_g: 10
+      )
+      expect(entry.kcal).to eq(170.0)
+
+      # #macro_inputs_changed? treats every persisted, food_id-less entry as
+      # having no catalog source to recompute against (see Entry, I7) — it
+      # cannot tell a genuinely ad-hoc entry apart from an orphaned one. That
+      # is correct for the orphan; for a genuinely ad-hoc entry it means a
+      # direct macro edit does NOT re-derive kcal, unlike a fresh create.
+      entry.update!(protein_g: 100, carbs_g: 100, fat_g: 100)
+
+      expect(entry.reload.kcal).to eq(170.0)
+    end
+
     it "rejects a negative weight even though it is optional" do
       entry = build(:entry, :ad_hoc, day_log: day_log, grams: -5)
 
