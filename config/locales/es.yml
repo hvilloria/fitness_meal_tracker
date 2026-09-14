@@ -30,7 +30,6 @@ es:
         label: "Etiqueta"
         grams: "Gramos"
       goal:
-        label: "Nombre"
         protein_g: "Proteína"
         carbs_g: "Carbohidratos"
         fat_g: "Grasa"

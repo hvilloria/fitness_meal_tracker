@@ -14,11 +14,6 @@
   </div>
 
   <div class="field">
-    <%= form.label :label, "Nombre" %>
-    <%= form.text_field :label %>
-  </div>
-
-  <div class="field">
     <%= form.label :protein_g, "Proteína (g)" %>
     <%= form.number_field :protein_g, step: 1, inputmode: "numeric",
           data: { macro_calculator_target: "protein" } %>

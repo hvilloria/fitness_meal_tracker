@@ -4,7 +4,6 @@ class Goal < ApplicationRecord
   belongs_to :user
   has_many :day_logs, dependent: :restrict_with_error
 
-  validates :label, presence: true
   validates :effective_from, presence: true
   # integer(4-byte) columns: a value at or above INTEGER_COLUMN_LIMIT passes
   # here but the derived kcal (macro grams × up to 9, see #derive_kcal) can

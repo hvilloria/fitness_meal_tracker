@@ -6,25 +6,53 @@ class GoalsController < ApplicationController
   end
 
   def update
-    @goal = current_user.default_goal || current_user.goals.build(effective_from: Date.current, is_default: true)
-    save_goal
+    attrs = goal_params
+    previous = current_user.default_goal
+
+    if previous && unchanged?(previous, attrs)
+      redirect_to root_path, notice: "Meta guardada."
+      return
+    end
+
+    build_and_save_version(attrs)
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
-    # @goal.update and the partial unique index on is_default are not
-    # atomic: two concurrent first-saves (e.g. a double-tap over a slow
-    # connection) can both find no default goal and both try to insert one
-    # as default. Whoever loses the race applies the same edits to the
-    # goal the winner just created, mirroring DayLog.for's recovery.
-    @goal = current_user.default_goal
-    save_goal
+    # A concurrent edit (e.g. a double-tap over a slow connection) can win
+    # the race for the default-goal unique index between our read and our
+    # insert. Versioning off whatever is now the default keeps history
+    # honest instead of mutating the row that won.
+    build_and_save_version(attrs)
   end
 
   private
-    def save_goal
-      if @goal.update(goal_params)
+    # A version is only worth creating when it actually changes a macro.
+    # Assigning to a dup lets ActiveRecord typecast the submitted strings
+    # the same way a real save would, without touching the persisted row.
+    def unchanged?(goal, attrs)
+      candidate = goal.dup
+      candidate.assign_attributes(attrs)
+      Goal::MACRO_FIELDS.all? { |field| candidate.public_send(field) == goal.public_send(field) }
+    end
+
+    def build_and_save_version(attrs)
+      @goal = current_user.goals.build(attrs.merge(
+        effective_from: DayLog.logical_date(current_user),
+        is_default: true
+      ))
+
+      if @goal.save
+        repoint_today_log
         redirect_to root_path, notice: "Meta guardada."
       else
         render :edit, status: :unprocessable_content
       end
+    end
+
+    # Past days must keep measuring against the goal that was in force when
+    # they were logged. The day still in progress hasn't finished being
+    # measured, so it moves to whatever the user just set.
+    def repoint_today_log
+      today = DayLog.logical_date(current_user)
+      current_user.day_logs.find_by(date: today)&.update!(goal: @goal)
     end
 
     # A brand new goal has no split to preserve. Seeding from a calorie figure
@@ -34,15 +62,14 @@ class GoalsController < ApplicationController
       seed = MacroSplit.from_kcal(params[:kcal].to_s.to_i)
 
       current_user.goals.build(
-        label: "Día normal",
-        effective_from: Date.current,
+        effective_from: DayLog.logical_date(current_user),
         is_default: true,
         **seed
       )
     end
 
     def goal_params
-      permitted = require_params_hash(:goal).permit(:label, :protein_g, :carbs_g, :fat_g)
+      permitted = require_params_hash(:goal).permit(:protein_g, :carbs_g, :fat_g)
       normalize_decimals(permitted, :protein_g, :carbs_g, :fat_g)
       permitted
     end

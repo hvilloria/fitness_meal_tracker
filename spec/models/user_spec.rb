@@ -35,6 +35,17 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe "#default_goal" do
+    it "returns the newest version" do
+      user = create(:user)
+      old = create(:goal, user: user, is_default: true)
+      newest = create(:goal, user: user, is_default: true)
+
+      expect(old.reload.is_default).to be(false)
+      expect(user.default_goal).to eq(newest)
+    end
+  end
+
   describe ".from_omniauth" do
     before do
       allow(ENV).to receive(:[]).and_call_original

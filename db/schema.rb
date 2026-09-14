@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_162434) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_193323) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -71,7 +71,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_162434) do
     t.integer "fat_g", default: 0, null: false
     t.boolean "is_default", default: false, null: false
     t.integer "kcal", default: 0, null: false
-    t.string "label", null: false
     t.integer "protein_g", default: 0, null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false

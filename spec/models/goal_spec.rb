@@ -4,7 +4,6 @@ RSpec.describe Goal, type: :model do
   subject(:goal) { build(:goal) }
 
   it { is_expected.to belong_to(:user) }
-  it { is_expected.to validate_presence_of(:label) }
 
   it "rejects negative macros" do
     expect(build(:goal, protein_g: -1)).not_to be_valid

@@ -24,6 +24,14 @@ RSpec.describe "Goals", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "renders no name field, since there is only ever one goal" do
+    user
+    get edit_goal_path
+
+    expect(response.body).not_to include("goal_label")
+    expect(response.body).not_to include("Nombre")
+  end
+
   it "does not 500 on an array-shaped kcal query param" do
     user
     get edit_goal_path, params: { kcal: [ "x" ] }
@@ -42,7 +50,7 @@ RSpec.describe "Goals", type: :request do
     user
 
     expect {
-      patch goal_path, params: { goal: { label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78 } }
+      patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
     }.to change(Goal, :count).by(1)
 
     goal = user.default_goal
@@ -50,21 +58,58 @@ RSpec.describe "Goals", type: :request do
     expect(goal.is_default).to be(true)
   end
 
-  it "updates the existing goal in place rather than versioning on every edit" do
+  it "versions the goal on every edit instead of updating it in place" do
     user
-    patch goal_path, params: { goal: { label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78 } }
+    patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
+    first = user.default_goal
 
     expect {
-      patch goal_path, params: { goal: { label: "Día normal", protein_g: 190, carbs_g: 220, fat_g: 78 } }
-    }.not_to change(Goal, :count)
+      patch goal_path, params: { goal: { protein_g: 190, carbs_g: 220, fat_g: 78 } }
+    }.to change(Goal, :count).by(1)
 
+    expect(first.reload.protein_g).to eq(180)
+    expect(first.is_default).to be(false)
     expect(user.default_goal.kcal).to eq(2342)
+  end
+
+  it "does not create a new row when the submitted macros match the current default" do
+    user
+    patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
+
+    expect {
+      patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
+    }.not_to change(Goal, :count)
+  end
+
+  it "leaves a day logged before the edit pointing at the old goal" do
+    user
+    patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
+
+    travel_to 2.days.ago do
+      DayLog.for(user)
+    end
+    past_log = user.day_logs.find_by(date: DayLog.logical_date(user, 2.days.ago))
+
+    patch goal_path, params: { goal: { protein_g: 190, carbs_g: 220, fat_g: 78 } }
+
+    expect(past_log.reload.goal.kcal).to eq(2302)
+  end
+
+  it "re-points today's day log at the new version" do
+    user
+    patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
+    today_log = DayLog.for(user)
+
+    patch goal_path, params: { goal: { protein_g: 190, carbs_g: 220, fat_g: 78 } }
+
+    expect(today_log.reload.goal).to eq(user.default_goal)
+    expect(today_log.goal.protein_g).to eq(190)
   end
 
   it "accepts a comma as the decimal separator for a macro" do
     user
 
-    patch goal_path, params: { goal: { label: "Día normal", protein_g: "180,5", carbs_g: 220, fat_g: 78 } }
+    patch goal_path, params: { goal: { protein_g: "180,5", carbs_g: 220, fat_g: 78 } }
 
     expect(response).to redirect_to(root_path)
     expect(user.default_goal.protein_g).to eq(180)
@@ -72,17 +117,9 @@ RSpec.describe "Goals", type: :request do
 
   it "re-renders when the macros are invalid" do
     user
-    patch goal_path, params: { goal: { label: "", protein_g: -5 } }
+    patch goal_path, params: { goal: { protein_g: -5 } }
 
     expect(response).to have_http_status(:unprocessable_content)
-  end
-
-  it "joins multiple validation errors with the Spanish connector, not the English one" do
-    user
-    patch goal_path, params: { goal: { label: "", protein_g: -5 } }
-
-    expect(response.body).to include(" y ")
-    expect(response.body).not_to include(" and ")
   end
 
   it "recovers when two concurrent first-saves race on the default-goal unique index" do
@@ -90,27 +127,31 @@ RSpec.describe "Goals", type: :request do
 
     # Simulate the loser of a double-tap: our own read finds no default
     # goal, but by the time we insert one, a concurrent request has already
-    # created and saved the real default.
-    winner = create(:goal, user: user, is_default: true, label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78)
+    # created and saved a default with different macros. The loser must
+    # still end up versioned off whatever is now the default, not mutate it.
+    winner = create(:goal, user: user, is_default: true, protein_g: 180, carbs_g: 220, fat_g: 78)
 
     allow(User).to receive(:find_by).and_call_original
     allow(User).to receive(:find_by).with(id: user.id).and_return(user)
 
-    call_count = 0
-    allow(user).to receive(:default_goal) do
-      call_count += 1
-      call_count == 1 ? nil : user.goals.find_by(is_default: true)
-    end
+    # Our own read finds no default (it ran before the winner's insert
+    # committed); only the first insert we attempt should fail the race.
+    allow(user).to receive(:default_goal).and_return(nil)
+
+    build_count = 0
     allow(user.goals).to receive(:build).and_wrap_original do |method, *args, &block|
       goal = method.call(*args, &block)
-      allow(goal).to receive(:update).and_raise(ActiveRecord::RecordNotUnique)
+      build_count += 1
+      allow(goal).to receive(:save).and_raise(ActiveRecord::RecordNotUnique) if build_count == 1
       goal
     end
 
-    patch goal_path, params: { goal: { label: "Día normal", protein_g: 190, carbs_g: 220, fat_g: 78 } }
+    patch goal_path, params: { goal: { protein_g: 190, carbs_g: 220, fat_g: 78 } }
 
     expect(response).to redirect_to(root_path)
-    expect(winner.reload.protein_g).to eq(190)
+    expect(winner.reload.protein_g).to eq(180)
+    expect(winner.is_default).to be(false)
+    expect(Goal.find_by(user: user, is_default: true).protein_g).to eq(190)
   end
 
   it "does not 500 when the goal param arrives as a bare scalar" do
@@ -122,7 +163,7 @@ RSpec.describe "Goals", type: :request do
 
   it "redirects to the day after saving" do
     user
-    patch goal_path, params: { goal: { label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78 } }
+    patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 } }
 
     expect(response).to redirect_to(root_path)
   end

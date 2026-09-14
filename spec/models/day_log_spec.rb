@@ -59,7 +59,7 @@ RSpec.describe DayLog, type: :model do
     it "keeps the goal that was in force even after the default changes" do
       travel_to Time.zone.local(2026, 9, 14, 10, 0) do
         day_log = DayLog.for(user)
-        create(:goal, user: user, is_default: true, label: "Nueva")
+        create(:goal, user: user, is_default: true)
 
         expect(day_log.reload.goal).to eq(goal)
       end
