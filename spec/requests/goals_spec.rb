@@ -46,6 +46,22 @@ RSpec.describe "Goals", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  it "renders the calorie total as an editable input, not static text" do
+    user
+    get edit_goal_path
+
+    expect(response.body).to include('name="kcal"')
+    expect(response.body).to include('type="number"')
+  end
+
+  it "ignores a posted kcal value and derives the total from the macros" do
+    user
+
+    patch goal_path, params: { goal: { protein_g: 180, carbs_g: 220, fat_g: 78 }, kcal: 9999 }
+
+    expect(user.default_goal.kcal).to eq(2302)
+  end
+
   it "creates the goal on first save and marks it default" do
     user
 
