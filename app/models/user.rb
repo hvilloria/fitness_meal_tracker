@@ -1,6 +1,7 @@
 class User < ApplicationRecord
   has_many :foods, dependent: :destroy
   has_many :goals, dependent: :destroy
+  has_many :day_logs, dependent: :destroy
 
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true

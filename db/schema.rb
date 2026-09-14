@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_160901) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_14_161315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "day_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.uuid "goal_id", null: false
+    t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
+    t.index ["goal_id"], name: "index_day_logs_on_goal_id"
+    t.index ["user_id", "date"], name: "index_day_logs_on_user_id_and_date", unique: true
+    t.index ["user_id"], name: "index_day_logs_on_user_id"
+  end
 
   create_table "foods", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "archived_at"
@@ -73,6 +84,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_160901) do
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true
   end
 
+  add_foreign_key "day_logs", "goals"
+  add_foreign_key "day_logs", "users"
   add_foreign_key "foods", "users"
   add_foreign_key "goals", "users"
   add_foreign_key "servings", "foods"
