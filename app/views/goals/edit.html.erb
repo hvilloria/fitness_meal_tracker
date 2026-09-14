@@ -1,0 +1,47 @@
+<% content_for :title, "Meta" %>
+<h1>Meta diaria</h1>
+
+<%= form_with model: @goal, url: goal_path, method: :patch, class: "stack",
+      data: { controller: "macro-calculator", action: "input->macro-calculator#recalculate" } do |form| %>
+
+  <% if @goal.errors.any? %>
+    <div class="flash flash--alert"><%= @goal.errors.full_messages.to_sentence %></div>
+  <% end %>
+
+  <div class="card goal-total">
+    <span class="goal-total__value" data-macro-calculator-target="kcal">0</span>
+    <span class="muted">kcal objetivo</span>
+  </div>
+
+  <div class="field">
+    <%= form.label :label, "Nombre" %>
+    <%= form.text_field :label %>
+  </div>
+
+  <div class="field">
+    <%= form.label :protein_g, "Proteína (g)" %>
+    <%= form.number_field :protein_g, step: 1, inputmode: "numeric",
+          data: { macro_calculator_target: "protein" } %>
+    <span class="muted"><span data-macro-calculator-target="proteinPct">0</span>% de las calorías</span>
+  </div>
+
+  <div class="field">
+    <%= form.label :carbs_g, "Carbohidratos (g)" %>
+    <%= form.number_field :carbs_g, step: 1, inputmode: "numeric",
+          data: { macro_calculator_target: "carbs" } %>
+    <span class="muted"><span data-macro-calculator-target="carbsPct">0</span>% de las calorías</span>
+  </div>
+
+  <div class="field">
+    <%= form.label :fat_g, "Grasa (g)" %>
+    <%= form.number_field :fat_g, step: 1, inputmode: "numeric",
+          data: { macro_calculator_target: "fat" } %>
+    <span class="muted"><span data-macro-calculator-target="fatPct">0</span>% de las calorías</span>
+  </div>
+
+  <p class="muted">
+    Movés cualquiera de los tres y las calorías se recalculan solas.
+  </p>
+
+  <%= form.submit "Guardar meta", class: "button button--primary" %>
+<% end %>

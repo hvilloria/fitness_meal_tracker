@@ -92,3 +92,14 @@
 .negative {
   color: var(--color-danger);
 }
+
+.goal-total {
+  text-align: center;
+
+  &__value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+}
