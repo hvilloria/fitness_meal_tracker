@@ -68,6 +68,42 @@ RSpec.describe "Goals", type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
   end
 
+  it "joins multiple validation errors with the Spanish connector, not the English one" do
+    user
+    patch goal_path, params: { goal: { label: "", protein_g: -5 } }
+
+    expect(response.body).to include(" y ")
+    expect(response.body).not_to include(" and ")
+  end
+
+  it "recovers when two concurrent first-saves race on the default-goal unique index" do
+    user
+
+    # Simulate the loser of a double-tap: our own read finds no default
+    # goal, but by the time we insert one, a concurrent request has already
+    # created and saved the real default.
+    winner = create(:goal, user: user, is_default: true, label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78)
+
+    allow(User).to receive(:find_by).and_call_original
+    allow(User).to receive(:find_by).with(id: user.id).and_return(user)
+
+    call_count = 0
+    allow(user).to receive(:default_goal) do
+      call_count += 1
+      call_count == 1 ? nil : user.goals.find_by(is_default: true)
+    end
+    allow(user.goals).to receive(:build).and_wrap_original do |method, *args, &block|
+      goal = method.call(*args, &block)
+      allow(goal).to receive(:update).and_raise(ActiveRecord::RecordNotUnique)
+      goal
+    end
+
+    patch goal_path, params: { goal: { label: "Día normal", protein_g: 190, carbs_g: 220, fat_g: 78 } }
+
+    expect(response).to redirect_to(root_path)
+    expect(winner.reload.protein_g).to eq(190)
+  end
+
   it "redirects to the day after saving" do
     user
     patch goal_path, params: { goal: { label: "Día normal", protein_g: 180, carbs_g: 220, fat_g: 78 } }

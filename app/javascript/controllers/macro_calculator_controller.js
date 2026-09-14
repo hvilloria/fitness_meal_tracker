@@ -31,7 +31,10 @@ export default class extends Controller {
 
   gramsFrom(element) {
     const value = parseFloat(element.value)
-    return Number.isFinite(value) ? value : 0
+    // The server rejects negative macros (greater_than_or_equal_to: 0), so a
+    // negative reading here must not drive the live total — showing the user
+    // a number the save will refuse is worse than clamping it in the UI.
+    return Number.isFinite(value) ? Math.max(0, value) : 0
   }
 
   percentage(macroKcal, totalKcal) {
