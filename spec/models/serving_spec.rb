@@ -35,5 +35,15 @@ RSpec.describe Serving, type: :model do
 
       expect(food.reload.default_serving).to eq(chosen)
     end
+
+
+    it "allows each food to have its own default serving independently" do
+      other_food = create(:food)
+      food_default = create(:serving, food: food, label: "1 feta", is_default: true)
+      other_default = create(:serving, food: other_food, label: "1 slice", is_default: true)
+
+      expect(food.reload.default_serving).to eq(food_default)
+      expect(other_food.reload.default_serving).to eq(other_default)
+    end
   end
 end

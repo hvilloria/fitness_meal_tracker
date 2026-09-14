@@ -4,7 +4,7 @@ class Serving < ApplicationRecord
   validates :label, presence: true
   validates :grams, numericality: { greater_than: 0 }
 
-  after_save :clear_other_defaults, if: :is_default?
+  before_save :clear_other_defaults, if: :is_default?
 
   private
     def clear_other_defaults

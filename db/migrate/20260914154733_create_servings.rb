@@ -8,5 +8,7 @@ class CreateServings < ActiveRecord::Migration[8.1]
 
       t.timestamps
     end
+
+    execute "CREATE UNIQUE INDEX index_servings_on_one_default_per_food ON servings(food_id) WHERE is_default"
   end
 end
