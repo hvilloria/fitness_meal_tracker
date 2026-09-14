@@ -87,4 +87,42 @@ RSpec.describe "Days", type: :request do
       expect(DayLog.for(user)).to eq(existing)
     end
   end
+
+  describe "the dashboard" do
+    def user = User.last
+
+    before do
+      sign_in
+    end
+
+    it "shows the goal total" do
+      goal = create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69)
+
+      get root_path
+
+      expect(response.body).to include(goal.kcal.to_s)
+    end
+
+    it "groups entries under their meal" do
+      create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69)
+      food = create(:food, user: user, name: "Pechuga de pollo")
+      post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 190 } }
+
+      get root_path
+
+      expect(response.body).to include("Almuerzo")
+      expect(response.body).to include("Pechuga de pollo")
+    end
+
+    it "shows a negative remainder rather than clamping at zero" do
+      create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69)
+      food = create(:food, user: user, kcal_per_100: 1000, protein_per_100: 0, carbs_per_100: 0, fat_per_100: 0)
+      post entries_path, params: { entry: { food_id: food.id, meal: "dinner", grams: 1000 } }
+
+      get root_path
+
+      expect(response.body).to include("-")
+      expect(response.body).to include("negative")
+    end
+  end
 end
