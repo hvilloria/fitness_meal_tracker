@@ -1,0 +1,11 @@
+#!/bin/bash -e
+
+# Remove a stale pidfile left behind by an unclean shutdown, which would
+# otherwise stop the Rails server from booting again.
+rm -f /rails/tmp/pids/server.pid
+
+# The Gemfile is bind-mounted, so it can change after the image was built.
+# Install anything that is missing before handing over to the command.
+bundle check || bundle install
+
+exec "${@}"

@@ -1,0 +1,47 @@
+name: fitness_meal_tracker
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Rails creates the _development and _test databases itself via
+      # `db:prepare`, so this only ensures the cluster is initialised.
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Published so a GUI client on the host can connect.
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      target: development
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      # Source code lives on the host, so edits apply without a rebuild.
+      - .:/rails
+      # A named volume keeps installed gems out of the bind mount.
+      - bundle:/usr/local/bundle
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Keeps `binding.break` usable from `docker compose up`.
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  bundle:

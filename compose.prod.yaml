@@ -1,0 +1,25 @@
+# Runs the production target of the Dockerfile against a remote database,
+# so the exact image that gets deployed can be smoke-tested locally.
+#
+#   RAILS_MASTER_KEY=$(cat config/master.key) \
+#     docker compose -f compose.prod.yaml up --build
+#
+# DATABASE_URL must point at Supabase using the Supavisor pooler on port
+# 5432 (session mode). Port 6543 is transaction mode and breaks Active
+# Record's prepared statements.
+#
+# Note: config/database.yml still declares separate cache, queue and cable
+# databases for solid_cache/solid_queue/solid_cable. That has to be resolved
+# before this runs against Supabase, which provides a single database.
+name: fitness_meal_tracker_production
+
+services:
+  web:
+    build:
+      context: .
+      target: production
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the Supabase connection string}
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:?read it from config/master.key}
+    ports:
+      - "8080:80"
