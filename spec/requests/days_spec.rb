@@ -7,7 +7,7 @@ RSpec.describe "Days", type: :request do
   end
 
   def sign_in
-    sign_in_via_google(email: "a@example.com")
+    @user = sign_in_via_google(email: "a@example.com")
   end
 
   it "redirects to the goal form when the user has no default goal" do
@@ -20,8 +20,9 @@ RSpec.describe "Days", type: :request do
   end
 
   it "shows the day and creates it for a user with a default goal" do
+    create(:user) # unrelated user already in the table; must not affect whose goal is picked up
     sign_in
-    create(:goal, user: User.last, is_default: true)
+    create(:goal, user: @user, is_default: true)
 
     expect { get root_path }.to change(DayLog, :count).by(1)
 
@@ -30,7 +31,7 @@ RSpec.describe "Days", type: :request do
 
   it "renders the requested date instead of today" do
     sign_in
-    create(:goal, user: User.last, is_default: true)
+    create(:goal, user: @user, is_default: true)
 
     get root_path, params: { date: "2026-09-01" }
 
@@ -40,7 +41,7 @@ RSpec.describe "Days", type: :request do
   describe "hostile date params fall back to today instead of erroring" do
     before do
       sign_in
-      create(:goal, user: User.last, is_default: true)
+      create(:goal, user: @user, is_default: true)
     end
 
     it "handles an array param" do

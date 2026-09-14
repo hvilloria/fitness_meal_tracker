@@ -8,6 +8,7 @@ module OmniAuthHelpers
       info: { email: email, name: name, image: "http://example.com/a.jpg" }
     )
     get "/auth/google_oauth2/callback"
+    User.find_by(provider: "google_oauth2", uid: uid)
   end
 end
 

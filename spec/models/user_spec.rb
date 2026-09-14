@@ -47,11 +47,11 @@ RSpec.describe User, type: :model do
     end
 
     it "reuses the existing user and refreshes the profile" do
-      User.from_omniauth(auth_hash(email: "a@example.com", name: "Old"))
+      original = User.from_omniauth(auth_hash(email: "a@example.com", name: "Old"))
 
       expect { User.from_omniauth(auth_hash(email: "a@example.com", name: "New")) }
         .not_to change(User, :count)
-      expect(User.last.name).to eq("New")
+      expect(original.reload.name).to eq("New")
     end
 
     it "defaults the day cutoff to 4" do

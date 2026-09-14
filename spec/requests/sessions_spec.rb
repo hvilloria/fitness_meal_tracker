@@ -7,10 +7,11 @@ RSpec.describe "Sessions", type: :request do
   end
 
   it "signs in an allowed user and redirects to the day" do
-    sign_in_via_google(email: "a@example.com")
+    create(:user) # unrelated user already in the table; must not affect which id lands in the session
+    user = sign_in_via_google(email: "a@example.com")
 
     expect(response).to redirect_to(root_path)
-    expect(session[:user_id]).to eq(User.last.id)
+    expect(session[:user_id]).to eq(user.id)
   end
 
   it "refuses a disallowed user" do
