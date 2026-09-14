@@ -24,6 +24,13 @@
   </head>
 
   <body>
-    <%= yield %>
+    <% if current_user %>
+      <%= render "shared/nav" %>
+    <% end %>
+
+    <div class="container stack">
+      <%= render "shared/flash" %>
+      <%= yield %>
+    </div>
   </body>
 </html>
