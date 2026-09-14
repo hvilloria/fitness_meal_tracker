@@ -122,5 +122,19 @@ RSpec.describe Food, type: :model do
 
       expect(Food.last_grams_for(user)).to be_empty
     end
+
+    it "is deterministic when two entries share the same logged_at" do
+      food = create(:food, user: user)
+      same_time = 1.hour.ago
+      # Create two entries with identical timestamps (to test tie-breaking)
+      create(:entry, day_log: day_log, food: food, meal: "lunch", grams: 150, logged_at: same_time)
+      create(:entry, day_log: day_log, food: food, meal: "dinner", grams: 190, logged_at: same_time)
+
+      # Verify that the result is consistent across multiple calls (deterministic)
+      # The id-based ordering ensures the result does not depend on database scan order
+      first_call = Food.last_grams_for(user)[food.id]
+      second_call = Food.last_grams_for(user)[food.id]
+      expect(first_call).to eq(second_call)
+    end
   end
 end

@@ -25,11 +25,10 @@ class Food < ApplicationRecord
     active
       .joins(entries: :day_log)
       .where(day_logs: { user_id: user.id })
-      .reorder(nil)
       .group(:id)
       .order(Arel.sql("COUNT(entries.id) DESC, MAX(entries.logged_at) DESC"))
       .limit(limit)
-      .load
+      .load # .load so .size returns the food count — on an unloaded grouped relation .size returns a per-group Hash
   end
 
   # One row per food, carrying the weight used most recently. Prefilling the
@@ -39,8 +38,7 @@ class Food < ApplicationRecord
       .joins(:day_log)
       .where(day_logs: { user_id: user.id })
       .where.not(food_id: nil)
-      .reorder(nil)
-      .order(:food_id, logged_at: :desc)
+      .order(:food_id, logged_at: :desc, id: :desc)
       .select("DISTINCT ON (entries.food_id) entries.food_id, entries.grams")
       .to_h { |entry| [ entry.food_id, entry.grams ] }
   end
