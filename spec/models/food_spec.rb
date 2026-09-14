@@ -126,15 +126,21 @@ RSpec.describe Food, type: :model do
     it "is deterministic when two entries share the same logged_at" do
       food = create(:food, user: user)
       same_time = 1.hour.ago
-      # Create two entries with identical timestamps (to test tie-breaking)
-      create(:entry, day_log: day_log, food: food, meal: "lunch", grams: 150, logged_at: same_time)
-      create(:entry, day_log: day_log, food: food, meal: "dinner", grams: 190, logged_at: same_time)
 
-      # Verify that the result is consistent across multiple calls (deterministic)
-      # The id-based ordering ensures the result does not depend on database scan order
-      first_call = Food.last_grams_for(user)[food.id]
-      second_call = Food.last_grams_for(user)[food.id]
-      expect(first_call).to eq(second_call)
+      # Create two entries with identical timestamps in one order
+      entry_a = create(:entry, day_log: day_log, food: food, meal: "lunch", grams: 111, logged_at: same_time)
+      entry_b = create(:entry, day_log: day_log, food: food, meal: "dinner", grams: 222, logged_at: same_time)
+      result_first_order = Food.last_grams_for(user)[food.id]
+
+      # Delete both and recreate in opposite insertion order with SAME UUIDs (stable across insertion order)
+      Entry.where(food: food).delete_all
+      create(:entry, id: entry_b.id, day_log: day_log, food: food, meal: "dinner", grams: 222, logged_at: same_time)
+      create(:entry, id: entry_a.id, day_log: day_log, food: food, meal: "lunch", grams: 111, logged_at: same_time)
+      result_second_order = Food.last_grams_for(user)[food.id]
+
+      # With id: :desc tie-breaking, the result is determined by UUID order (stable).
+      # Without the fix, insertion/scan order would cause the result to flip.
+      expect(result_first_order).to eq(result_second_order)
     end
   end
 end
