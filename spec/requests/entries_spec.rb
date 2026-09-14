@@ -117,4 +117,58 @@ RSpec.describe "Entries", type: :request do
 
     expect(response).to have_http_status(:ok)
   end
+
+  describe "ad-hoc entries" do
+    it "renders the ad-hoc form, not the catalog select, for ?ad_hoc=1" do
+      get new_entry_path, params: { ad_hoc: "1" }
+
+      expect(response.body).to include('name="entry[food_name_snapshot]"')
+      expect(response.body).not_to include('name="entry[food_id]"')
+    end
+
+    it "renders the catalog form, not the ad-hoc fields, without ?ad_hoc" do
+      get new_entry_path
+
+      expect(response.body).to include('name="entry[food_id]"')
+      expect(response.body).not_to include('name="entry[food_name_snapshot]"')
+    end
+
+    it "creates an entry with no food_id and calories derived as 4p + 4c + 9f" do
+      expect {
+        post entries_path, params: {
+          entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 100, carbs_g: 100, fat_g: 100 }
+        }
+      }.to change(Entry, :count).by(1)
+
+      entry = Entry.last
+      expect(entry.food_id).to be_nil
+      expect(entry.protein_g).to eq(100)
+      expect(entry.carbs_g).to eq(100)
+      expect(entry.fat_g).to eq(100)
+      expect(entry.kcal).to eq(1700)
+    end
+
+    it "accepts a comma as the decimal separator" do
+      post entries_path, params: {
+        entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: "12,5", carbs_g: "10", fat_g: "5" }
+      }
+
+      expect(Entry.last.protein_g).to eq(12.5)
+    end
+
+    it "does not 500 on a hostile ad_hoc query param shape" do
+      get new_entry_path, params: { ad_hoc: [ "x" ] }
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "rejects an entry with no name and re-renders the form" do
+      expect {
+        post entries_path, params: { entry: { meal: "dinner", protein_g: 100, carbs_g: 100, fat_g: 100 } }
+      }.not_to change(Entry, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.body).to include('name="entry[food_name_snapshot]"')
+    end
+  end
 end

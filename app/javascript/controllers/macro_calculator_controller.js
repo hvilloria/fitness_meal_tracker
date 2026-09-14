@@ -24,9 +24,12 @@ export default class extends Controller {
     const total = proteinKcal + carbsKcal + fatKcal
 
     this.kcalTarget.textContent = Math.round(total)
-    this.proteinPctTarget.textContent = this.percentage(proteinKcal, total)
-    this.carbsPctTarget.textContent = this.percentage(carbsKcal, total)
-    this.fatPctTarget.textContent = this.percentage(fatKcal, total)
+
+    // The percentage breakdown is optional: the ad-hoc entry form only
+    // shows the calorie total, not a per-macro percentage split.
+    if (this.hasProteinPctTarget) this.proteinPctTarget.textContent = this.percentage(proteinKcal, total)
+    if (this.hasCarbsPctTarget) this.carbsPctTarget.textContent = this.percentage(carbsKcal, total)
+    if (this.hasFatPctTarget) this.fatPctTarget.textContent = this.percentage(fatKcal, total)
   }
 
   gramsFrom(element) {

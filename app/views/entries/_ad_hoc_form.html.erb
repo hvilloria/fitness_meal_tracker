@@ -1,0 +1,49 @@
+<%= form_with model: entry, url: entries_path, class: "stack",
+      data: { controller: "macro-calculator", action: "input->macro-calculator#recalculate" } do |form| %>
+
+  <% if entry.errors.any? %>
+    <div class="flash flash--alert"><%= entry.errors.full_messages.to_sentence %></div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :meal, "Comida" %>
+    <%= form.select :meal, Entry::MEALS.map { |meal| [ t("meals.#{meal}"), meal ] } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :food_name_snapshot, "Nombre" %>
+    <%= form.text_field :food_name_snapshot %>
+  </div>
+
+  <div class="field">
+    <%= form.label :protein_g, "Proteína (g)" %>
+    <%= form.number_field :protein_g, step: :any, inputmode: "decimal",
+          data: { macro_calculator_target: "protein" } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :carbs_g, "Carbohidratos (g)" %>
+    <%= form.number_field :carbs_g, step: :any, inputmode: "decimal",
+          data: { macro_calculator_target: "carbs" } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :fat_g, "Grasa (g)" %>
+    <%= form.number_field :fat_g, step: :any, inputmode: "decimal",
+          data: { macro_calculator_target: "fat" } %>
+  </div>
+
+  <div class="field">
+    <%= form.label :grams, "Peso (g) — opcional" %>
+    <%= form.number_field :grams, step: :any, inputmode: "decimal" %>
+  </div>
+
+  <div class="card goal-total">
+    <span class="goal-total__value" data-macro-calculator-target="kcal">0</span>
+    <span class="muted">kcal</span>
+  </div>
+
+  <%= form.submit "Agregar", class: "button button--primary" %>
+<% end %>
+
+<p><%= link_to "Elegir del catálogo", new_entry_path %></p>

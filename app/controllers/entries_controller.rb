@@ -5,13 +5,19 @@ class EntriesController < ApplicationController
 
   def new
     @day_log = DayLog.for(current_user)
+    # #present? is safe against the Array/Hash shapes a hostile query string
+    # can send for a param that is normally a flag.
+    @ad_hoc = params[:ad_hoc].present?
     @entry = Entry.new(meal: params[:meal].to_s.presence || "breakfast")
-    load_food_options
+    load_food_options unless @ad_hoc
   end
 
   def create
     @day_log = DayLog.for(current_user)
     @entry = @day_log.entries.build(entry_attributes)
+    # Which form was submitted is read from the entry itself, not a query
+    # param: the ad-hoc form has no food_id field at all.
+    @ad_hoc = entry_params[:food_id].blank?
 
     if @entry.save
       respond_to do |format|
@@ -19,7 +25,12 @@ class EntriesController < ApplicationController
         format.html { redirect_to new_entry_path(meal: @entry.meal), notice: "Registrado." }
       end
     else
-      load_food_options
+      load_food_options unless @ad_hoc
+      # #build pushed the invalid, unsaved @entry onto the day_log.entries
+      # association target; reload so the "registrado hoy" list below the
+      # form doesn't try to render it (it has no id yet, so entry_path
+      # would fail to generate a route for it).
+      @day_log.entries.reload
       render :new, status: :unprocessable_entity
     end
   end
