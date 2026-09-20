@@ -47,6 +47,41 @@ RSpec.describe Food, type: :model do
     expect(build(:food, protein_per_100: -1)).not_to be_valid
   end
 
+  describe "deriving kcal_per_100 from the macros when it is blank" do
+    it "derives it from the 4/4/9 macro split when the label value is left blank" do
+      food = create(:food, kcal_per_100: nil, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      expect(food.kcal_per_100).to eq(170.0)
+    end
+
+    it "keeps an explicit label value even when it disagrees with 4/4/9" do
+      food = create(:food, kcal_per_100: 999, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      expect(food.kcal_per_100).to eq(999)
+    end
+
+    it "keeps an explicit 0 rather than treating it as blank" do
+      food = create(:food, kcal_per_100: 0, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      expect(food.kcal_per_100).to eq(0)
+    end
+
+    it "re-derives when an existing food's calorie field is cleared on edit" do
+      food = create(:food, kcal_per_100: 220, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      food.update!(kcal_per_100: nil)
+
+      expect(food.kcal_per_100).to eq(170.0)
+    end
+
+    it "still enforces the upper bound on a derived value" do
+      food = build(:food, kcal_per_100: nil, protein_per_100: 90_000, carbs_per_100: 90_000, fat_per_100: 90_000)
+
+      expect(food).not_to be_valid
+      expect(food.errors.attribute_names).to include(:kcal_per_100)
+    end
+  end
+
   it "allows the optional micronutrients to be blank" do
     expect(build(:food, fiber_per_100: nil, sodium_per_100: nil, sugar_per_100: nil)).to be_valid
   end

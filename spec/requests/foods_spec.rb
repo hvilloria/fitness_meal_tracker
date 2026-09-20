@@ -38,6 +38,21 @@ RSpec.describe "Foods", type: :request do
     expect(food.servings.first.label).to eq("1 feta")
   end
 
+  it "creates a food without calories, deriving them from the macros" do
+    user
+
+    post foods_path, params: {
+      food: { name: "Sin calorías", protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10 }
+    }
+
+    food = Food.find_by(name: "Sin calorías")
+    expect(food.kcal_per_100).to eq(170.0)
+
+    get foods_path
+
+    expect(response.body).to include("170")
+  end
+
   it "re-renders the form when the food is invalid" do
     user
 

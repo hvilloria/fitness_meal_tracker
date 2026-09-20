@@ -21,6 +21,7 @@ class Food < ApplicationRecord
   accepts_nested_attributes_for :servings, allow_destroy: true, reject_if: :all_blank
 
   before_validation :nilify_blank_state
+  before_validation :derive_kcal_per_100_if_blank
 
   validates :name, presence: true
   validates :state, inclusion: { in: STATES }, allow_nil: true
@@ -104,5 +105,24 @@ class Food < ApplicationRecord
     # that allow_nil is meant to exempt it from.
     def nilify_blank_state
       self.state = nil if state.blank?
+    end
+
+    # kcal_per_100 is taken from the label rather than computed, because
+    # labels account for fiber, sugar alcohols and rounding that the 4/4/9
+    # calculation does not (see docs/superpowers/specs — the macro-tracker
+    # design doc). When there is no label, it is derived once here and
+    # stored, so every downstream reader still finds a plain number.
+    #
+    # `.blank?` (not `.nil?`) is deliberate: an unsubmitted number_field
+    # posts "", which the decimal type casts to nil, so this must catch
+    # both. A genuinely supplied 0 is not blank and is left untouched —
+    # a label really can round a trace amount down to 0 kcal.
+    def derive_kcal_per_100_if_blank
+      return unless kcal_per_100.blank?
+      return if protein_per_100.blank? || carbs_per_100.blank? || fat_per_100.blank?
+
+      self.kcal_per_100 = MacroSplit.kcal_from_exact(
+        protein_g: protein_per_100, carbs_g: carbs_per_100, fat_g: fat_per_100
+      )
     end
 end
