@@ -7,14 +7,14 @@
 # Figures are USDA values for the COOKED cut, per 100 g. Cooked and raw
 # differ by roughly 30% because cooking drives off water — do not paste a
 # raw-cut value in here without converting it first.
-STARTER_FOODS = [
+starter_foods = [
   { name: "Pechuga de pollo", state: "cooked", kcal_per_100: 165, protein_per_100: 31.0, carbs_per_100: 0, fat_per_100: 3.6 },
   { name: "Muslo de pollo", state: "cooked", kcal_per_100: 209, protein_per_100: 25.9, carbs_per_100: 0, fat_per_100: 10.9 },
   { name: "Bola de lomo", state: "cooked", kcal_per_100: 163, protein_per_100: 29.9, carbs_per_100: 0, fat_per_100: 3.9 }
 ].freeze
 
 User.find_each do |user|
-  STARTER_FOODS.each do |attributes|
+  starter_foods.each do |attributes|
     user.foods.find_or_create_by!(name: attributes[:name]) do |food|
       food.assign_attributes(attributes)
     end

@@ -100,6 +100,26 @@
   }
 }
 
+// The food form's portion basis reads as one sentence with a number in the
+// middle — "Los valores son por cada [30] g" — so the input sits inline
+// inside its own label rather than under a heading of its own. It overrides
+// the muted, small label type (this label IS the question) and the
+// full-width field input, while keeping a full tap target.
+.field label.portion {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text);
+  font-size: var(--text-base);
+
+  input {
+    width: auto;
+    max-width: 7rem;
+  }
+}
+
 // The entry form's amount is one control in two halves: how many, and of
 // what. Side by side from the narrowest screen up — they read as a single
 // phrase, and each half still fills a full tap target.

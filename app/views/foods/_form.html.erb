@@ -26,60 +26,55 @@
     <%= form.select :unit, Food::UNITS.map { |unit| [ t("food.units.#{unit}"), unit ] } %>
   </div>
 
-  <p class="muted">Valores de la etiqueta, <%= food.per_100_label %>.</p>
+  <%# The basis of everything typed below: one portion of this food, stated
+      in the food's own unit. A label that already reads per 100 needs no
+      thought — 100 is the default. The input sits inside its own label so
+      the whole sentence names it, rather than a bare number field next to
+      loose text.
+
+      A text field, not a number field: this is where the unit gets typed
+      along with the number ("30 g"), and a number input answers that by
+      handing the server an empty string — the typed value disappears with
+      nothing to report. As text it arrives intact and
+      NormalizesDecimalParams takes the number out of it. %>
+  <div class="field">
+    <%= form.label :portion_amount, class: "portion" do %>
+      Los valores son por cada
+      <%= form.text_field :portion_amount, inputmode: "decimal",
+            value: food_decimal_field_value(food.portion_amount) %>
+      <%= food.unit_abbreviation %>
+    <% end %>
+  </div>
 
   <div class="field">
-    <%= form.label :kcal_per_100, "Calorías (opcional)" %>
-    <%= form.number_field :kcal_per_100, step: :any, inputmode: "decimal" %>
+    <%= form.label :kcal_per_portion, "Calorías (opcional)" %>
+    <%= form.number_field :kcal_per_portion, step: :any, inputmode: "decimal",
+          value: food_decimal_field_value(food.kcal_per_portion) %>
     <p class="field__hint">
       Si se deja en blanco, se calcula a partir de las macros
-      (<span data-macro-calculator-target="kcal">0</span> kcal).
+      (<span data-macro-calculator-target="kcal">0</span> kcal por porción).
     </p>
   </div>
 
   <div class="field">
-    <%= form.label :protein_per_100, "Proteína (g)" %>
-    <%= form.number_field :protein_per_100, step: :any, inputmode: "decimal",
+    <%= form.label :protein_per_portion, "Proteína (g)" %>
+    <%= form.number_field :protein_per_portion, step: :any, inputmode: "decimal",
+          value: food_decimal_field_value(food.protein_per_portion),
           data: { macro_calculator_target: "protein" } %>
   </div>
 
   <div class="field">
-    <%= form.label :carbs_per_100, "Carbohidratos (g)" %>
-    <%= form.number_field :carbs_per_100, step: :any, inputmode: "decimal",
+    <%= form.label :carbs_per_portion, "Carbohidratos (g)" %>
+    <%= form.number_field :carbs_per_portion, step: :any, inputmode: "decimal",
+          value: food_decimal_field_value(food.carbs_per_portion),
           data: { macro_calculator_target: "carbs" } %>
   </div>
 
   <div class="field">
-    <%= form.label :fat_per_100, "Grasa (g)" %>
-    <%= form.number_field :fat_per_100, step: :any, inputmode: "decimal",
+    <%= form.label :fat_per_portion, "Grasa (g)" %>
+    <%= form.number_field :fat_per_portion, step: :any, inputmode: "decimal",
+          value: food_decimal_field_value(food.fat_per_portion),
           data: { macro_calculator_target: "fat" } %>
-  </div>
-
-  <h2>Porciones</h2>
-  <p class="muted">Por ejemplo "1 feta" equivale a 30 g.</p>
-
-  <div class="stack" data-controller="nested-fields">
-    <div class="stack" data-nested-fields-target="list">
-      <%# include_id: false because each row renders its own hidden id (see
-          _serving_fields): fields_for would append it after the row instead
-          of inside it, and the remove button needs it within the row. %>
-      <%= form.fields_for :servings, include_id: false do |serving_form| %>
-        <%= render "serving_fields", form: serving_form %>
-      <% end %>
-    </div>
-
-    <%# The blank row to clone. Its index is a placeholder the Stimulus
-        controller swaps for a unique one, so two rows added in a row do not
-        collide under the same servings_attributes key. %>
-    <template data-nested-fields-target="template">
-      <%= form.fields_for :servings, Serving.new, child_index: "NEW_RECORD", include_id: false do |serving_form| %>
-        <%= render "serving_fields", form: serving_form %>
-      <% end %>
-    </template>
-
-    <button type="button" class="button button--quiet" data-action="nested-fields#add">
-      Agregar porción
-    </button>
   </div>
 
   <%= form.submit "Guardar", class: "button button--primary" %>

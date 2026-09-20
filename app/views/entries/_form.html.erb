@@ -19,9 +19,11 @@
   </div>
 
   <%# The amount is a quantity plus the unit it is counted in. The units on
-      offer belong to the selected food (its own g/ml, that unit ×1000, and
-      each of its servings), so the list is rebuilt in the browser whenever
-      the food changes — see entry_preview_controller.js#foodChanged. %>
+      offer belong to the selected food (one portion of it, its own g/ml,
+      and that unit ×1000), so the list is rebuilt in the browser whenever
+      the food changes — see entry_preview_controller.js#foodChanged. Which
+      one starts selected is decided in one place, on the server, and rides
+      onto the food's option as data-default-unit. %>
   <div class="amount">
     <div class="field">
       <%= form.label :quantity, "Cantidad" %>
@@ -31,7 +33,8 @@
 
     <div class="field">
       <%= form.label :unit, "Unidad" %>
-      <%= form.select :unit, entry_unit_options(entry.food), {},
+      <%= form.select :unit, entry_unit_options(entry.food),
+            { selected: entry.unit.presence || default_entry_unit(entry.food) },
             data: { entry_preview_target: "unit" } %>
     </div>
   </div>

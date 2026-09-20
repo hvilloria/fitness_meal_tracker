@@ -82,6 +82,76 @@ RSpec.describe Food, type: :model do
     end
   end
 
+  describe "the portion the typed figures describe" do
+    it "defaults to 100, so a per-100 label is the no-thought case" do
+      expect(Food.new.portion_amount).to eq(100)
+    end
+
+    it "requires a positive portion" do
+      expect(build(:food, portion_amount: 0)).not_to be_valid
+      expect(build(:food, portion_amount: -1)).not_to be_valid
+      expect(build(:food, portion_amount: nil)).not_to be_valid
+    end
+
+    it "normalises the portion's macros into the per-100 columns" do
+      food = create(:food, portion_amount: 30, kcal_per_portion: nil,
+        protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10)
+
+      expect(food.protein_per_100).to eq(33.33)
+      expect(food.carbs_per_100).to eq(16.67)
+      expect(food.fat_per_100).to eq(33.33)
+    end
+
+    it "reads the stored figures back as the portion they were typed for" do
+      food = create(:food, portion_amount: 30, kcal_per_portion: 150,
+        protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10)
+
+      expect(food.reload.protein_per_portion).to eq(10)
+      expect(food.carbs_per_portion).to eq(5)
+      expect(food.fat_per_portion).to eq(10)
+      expect(food.kcal_per_portion).to eq(150)
+    end
+
+    it "leaves a per-100 figure assigned directly alone" do
+      food = create(:food, portion_amount: 30, protein_per_100: 33.33)
+
+      expect(food.protein_per_100).to eq(33.33)
+    end
+
+    it "shows back what was typed, not a number, when the value is unusable" do
+      food = build(:food, protein_per_portion: "treinta")
+
+      expect(food).not_to be_valid
+      expect(food.protein_per_100).to be_nil
+      expect(food.protein_per_portion).to eq("treinta")
+    end
+
+    it "converts nothing when the portion itself is unusable" do
+      food = build(:food, portion_amount: 0, protein_per_portion: 10)
+
+      expect(food).not_to be_valid
+      expect(food.errors.attribute_names).to include(:portion_amount)
+    end
+
+    it "derives the optional calories from the portion's own macros" do
+      food = create(:food, portion_amount: 30, kcal_per_portion: nil,
+        protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10)
+
+      expect(food.reload.kcal_per_portion).to eq(150)
+      expect(food.kcal_per_100).to eq(500)
+    end
+
+    describe "#counts_in_portions?" do
+      it "is true for a food that declares a portion of its own" do
+        expect(build(:food, portion_amount: 30).counts_in_portions?).to be(true)
+      end
+
+      it "is false for a food whose figures are simply per 100" do
+        expect(build(:food, portion_amount: 100).counts_in_portions?).to be(false)
+      end
+    end
+  end
+
   it "allows the optional micronutrients to be blank" do
     expect(build(:food, fiber_per_100: nil, sodium_per_100: nil, sugar_per_100: nil)).to be_valid
   end

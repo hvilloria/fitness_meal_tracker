@@ -67,19 +67,13 @@ class EntriesController < ApplicationController
       @recent_foods = Food.recent_for(current_user).to_a
       @other_foods = current_user.foods.active.where.not(id: @recent_foods.map(&:id)).order(:name).to_a
       @last_grams = Food.last_grams_for(current_user)
-      # Every option carries its food's servings, so the unit select can be
-      # rebuilt in the browser when the food changes. Preloaded rather than
-      # eager-loaded through the relations: Food.recent_for is a GROUP BY
-      # query, which cannot carry an includes.
-      ActiveRecord::Associations::Preloader
-        .new(records: @recent_foods + @other_foods, associations: :servings).call
     end
 
     def entry_attributes
       # :quantity and :unit are not stored, but they are assigned (Entry
       # exposes them as plain accessors) so a form re-rendered after a
       # validation error still shows what was typed and picked.
-      attributes = entry_params.except(:serving_id)
+      attributes = entry_params
       food = find_food(entry_params[:food_id])
       return attributes.merge(food: nil) if food.nil?
 
@@ -97,34 +91,18 @@ class EntriesController < ApplicationController
     # picked, because the label is frozen history — it must never disagree
     # with the grams stored beside it.
     def amount_resolution(food)
-      serving = selected_serving(food)
-      return serving_resolution(serving) if serving.present?
-      return multiple_resolution(food) if entry_params[:unit] == Entry::MULTIPLE_UNIT
-
-      base_resolution
+      case entry_params[:unit]
+      when Entry::PORTION_UNIT then portion_resolution(food)
+      when Entry::MULTIPLE_UNIT then multiple_resolution(food)
+      else base_resolution
+      end
     end
 
-    # Scoped through food.servings, so a serving belonging to another food —
-    # or to another user's food — simply is not found and the amount falls
-    # back to the base unit rather than borrowing a stranger's multiplier.
-    def selected_serving(food)
-      return nil if (id = selected_serving_id).blank?
-
-      food.servings.find_by(id: id)
-    end
-
-    def selected_serving_id
-      unit = entry_params[:unit].to_s
-      return unit.delete_prefix(Entry::SERVING_UNIT_PREFIX) if unit.start_with?(Entry::SERVING_UNIT_PREFIX)
-
-      # The form always posts a unit; :serving_id remains for a caller that
-      # names the serving directly.
-      entry_params[:serving_id]
-    end
-
-    def serving_resolution(serving)
+    # One unit is one portion of this food, which is Food#portion_amount of
+    # its own unit — "2 unidades" of a food whose portion is 30 g is 60 g.
+    def portion_resolution(food)
       quantity = resolved_quantity
-      { grams: serving.grams * quantity, serving_label: "#{formatted_quantity(quantity)} × #{serving.label}" }
+      { grams: food.portion_amount * quantity, serving_label: portion_label(quantity) }
     end
 
     def multiple_resolution(food)
@@ -135,9 +113,10 @@ class EntriesController < ApplicationController
 
     # The base unit needs neither a multiplier nor a label: the quantity is
     # already in the unit #grams stores, and the entry row renders the bare
-    # number with the food's own unit (see Entry#unit_abbreviation). A
-    # request that sends grams directly instead of a quantity is left
-    # exactly as it was before the unit selector existed.
+    # number with the food's own unit (see Entry#unit_abbreviation), which
+    # reads "200 g" without a label having to repeat it. A request that
+    # sends grams directly instead of a quantity is left exactly as it was
+    # before the unit selector existed.
     def base_resolution
       return {} if entry_params[:quantity].blank?
 
@@ -155,6 +134,12 @@ class EntriesController < ApplicationController
       helpers.number_with_precision(quantity, precision: 2, strip_insignificant_zeros: true)
     end
 
+    # "2 unidades", "1 unidad" — the portion has no name of its own (that is
+    # the whole point of it), so the unit word is all the label can say.
+    def portion_label(quantity)
+      "#{formatted_quantity(quantity)} #{quantity == 1 ? "unidad" : "unidades"}"
+    end
+
     def find_food(food_id)
       return nil if food_id.blank?
 
@@ -164,7 +149,7 @@ class EntriesController < ApplicationController
     def entry_params
       @entry_params ||= begin
         permitted = require_params_hash(:entry).permit(
-          :food_id, :meal, :grams, :serving_id, :quantity, :unit,
+          :food_id, :meal, :grams, :quantity, :unit,
           :food_name_snapshot, :protein_g, :carbs_g, :fat_g
         )
         normalize_decimals(permitted, :grams, :protein_g, :carbs_g, :fat_g, :quantity)

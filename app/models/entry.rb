@@ -6,12 +6,12 @@ class Entry < ApplicationRecord
 
   # The entry form's amount is a quantity plus a unit, and the unit is only
   # ever the multiplier that turns that quantity into the food's base unit
-  # (see EntriesController#amount_resolution). These are the values that
-  # unit select posts; a serving's option carries its own id after the
-  # prefix, since the servings on offer belong to the selected food.
+  # (see EntriesController#amount_resolution). These are the three values
+  # that unit select posts: one portion of the selected food (Food
+  # #portion_amount of its own unit), that unit itself, or a thousand of it.
+  PORTION_UNIT = "portion".freeze
   BASE_UNIT = "base".freeze
   MULTIPLE_UNIT = "x1000".freeze
-  SERVING_UNIT_PREFIX = "serving:".freeze
 
   belongs_to :day_log
   belongs_to :food, optional: true
