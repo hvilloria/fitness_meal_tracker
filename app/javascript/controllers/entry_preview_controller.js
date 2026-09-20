@@ -3,9 +3,10 @@ import { Controller } from "@hotwired/stimulus"
 // Shows the macros a weight will produce, before the entry is saved. The
 // per-100 g values ride along on the selected option.
 export default class extends Controller {
-  static targets = ["food", "grams", "kcal", "protein", "carbs", "fat"]
+  static targets = ["food", "grams", "kcal", "protein", "carbs", "fat", "unitLabel"]
 
   connect() {
+    this.updateUnitLabel()
     this.preview()
   }
 
@@ -19,7 +20,19 @@ export default class extends Controller {
       this.gramsTarget.value = parseFloat(lastGrams)
     }
 
+    this.updateUnitLabel()
     this.preview()
+  }
+
+  // The weight field's unit label follows the selected food (g or ml, see
+  // Food#unit) — it falls back to "g" for the blank "Elegí un alimento"
+  // option, which carries no data-unit, and on connect (e.g. a form
+  // re-rendered with a food already selected after a validation error).
+  updateUnitLabel() {
+    if (!this.hasUnitLabelTarget) return
+
+    const option = this.foodTarget.selectedOptions[0]
+    this.unitLabelTarget.textContent = (option && option.dataset.unit) || "g"
   }
 
   preview() {

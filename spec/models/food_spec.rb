@@ -6,6 +6,27 @@ RSpec.describe Food, type: :model do
   it { is_expected.to belong_to(:user) }
   it { is_expected.to validate_presence_of(:name) }
   it { is_expected.to validate_inclusion_of(:state).in_array(Food::STATES).allow_nil }
+  it { is_expected.to validate_inclusion_of(:unit).in_array(Food::UNITS) }
+
+  describe "#unit_abbreviation and #per_100_label" do
+    it "abbreviates grams as g" do
+      food = build(:food, unit: "grams")
+
+      expect(food.unit_abbreviation).to eq("g")
+      expect(food.per_100_label).to eq("por cada 100 g")
+    end
+
+    it "abbreviates milliliters as ml" do
+      food = build(:food, :milliliters)
+
+      expect(food.unit_abbreviation).to eq("ml")
+      expect(food.per_100_label).to eq("por cada 100 ml")
+    end
+
+    it "defaults to grams" do
+      expect(Food.new.unit).to eq("grams")
+    end
+  end
 
   it "treats a blank state the same as nil (the form's blank option posts \"\")" do
     food = build(:food, state: "")

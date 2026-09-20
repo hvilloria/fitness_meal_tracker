@@ -19,7 +19,11 @@
   </div>
 
   <div class="field">
-    <%= form.label :grams, "Peso (g)" %>
+    <%# The unit follows the selected food (g or ml) — see
+        entry_preview_controller.js#foodChanged. %>
+    <%= form.label :grams do %>
+      Peso (<span data-entry-preview-target="unitLabel">g</span>)
+    <% end %>
     <%= form.number_field :grams, step: :any, inputmode: "decimal",
           data: { entry_preview_target: "grams" } %>
   </div>

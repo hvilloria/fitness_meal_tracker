@@ -13,6 +13,7 @@ module EntriesHelper
         data: {
           kcal: food.kcal_per_100, protein: food.protein_per_100,
           carbs: food.carbs_per_100, fat: food.fat_per_100,
+          unit: food.unit_abbreviation,
           last_grams: last_grams[food.id]
         }
       }

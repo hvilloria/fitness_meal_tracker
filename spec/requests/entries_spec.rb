@@ -203,6 +203,36 @@ RSpec.describe "Entries", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  describe "units (grams vs millilitres)" do
+    it "shows the millilitres unit for a liquid food's option and entry row" do
+      liquid = create(:food, :milliliters, user: user, name: "Coca-Cola")
+
+      post entries_path, params: { entry: { food_id: liquid.id, meal: "snack", grams: 330 } }
+
+      get new_entry_path
+
+      expect(response.body).to include('data-unit="ml"')
+      expect(response.body).to include("330 ml")
+    end
+
+    it "shows the grams unit for a solid food's entry row" do
+      food = create(:food, user: user, name: "Pechuga de pollo")
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "snack", grams: 150 } }
+
+      get new_entry_path
+
+      expect(response.body).to include("150 g")
+    end
+
+    it "shows no unit on an ad-hoc entry's amount field" do
+      get new_entry_path, params: { ad_hoc: "1" }
+
+      expect(response.body).to include("Peso — opcional")
+      expect(response.body).not_to include("Peso (g)")
+    end
+  end
+
   describe "ad-hoc entries" do
     it "renders the ad-hoc form, not the catalog select, for ?ad_hoc=1" do
       get new_entry_path, params: { ad_hoc: "1" }
@@ -303,6 +333,15 @@ RSpec.describe "Entries", type: :request do
       headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "returns the catalog form, not the ad-hoc fields, after an ad-hoc save" do
+    post entries_path,
+      params: { entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 100, carbs_g: 100, fat_g: 100 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include('name="entry[food_id]"')
+    expect(response.body).not_to include('name="entry[food_name_snapshot]"')
   end
 
   it "resets the form after a successful Turbo save instead of keeping the logged item" do

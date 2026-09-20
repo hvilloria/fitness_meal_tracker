@@ -130,6 +130,41 @@ RSpec.describe "Foods", type: :request do
     expect(Food.find_by(name: "Porción con coma en array").servings.first.grams).to eq(12.5)
   end
 
+  it "creates a food with the milliliters unit and saves it" do
+    user
+
+    post foods_path, params: {
+      food: {
+        name: "Coca-Cola", unit: "milliliters",
+        kcal_per_100: 42, protein_per_100: 0, carbs_per_100: 10.6, fat_per_100: 0
+      }
+    }
+
+    expect(Food.find_by(name: "Coca-Cola").unit).to eq("milliliters")
+  end
+
+  it "defaults a food's unit to grams when none is submitted" do
+    user
+
+    post foods_path, params: {
+      food: { name: "Sin unidad", kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12 }
+    }
+
+    expect(Food.find_by(name: "Sin unidad").unit).to eq("grams")
+  end
+
+  it "labels the per-100 fields according to the food's unit" do
+    create(:food, :milliliters, user: user, name: "Coca-Cola")
+
+    get new_food_path
+
+    expect(response.body).to include("por cada 100 g")
+
+    get edit_food_path(Food.find_by(name: "Coca-Cola"))
+
+    expect(response.body).to include("por cada 100 ml")
+  end
+
   it "updates a food" do
     food = create(:food, user: user)
 

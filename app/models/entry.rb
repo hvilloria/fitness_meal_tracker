@@ -7,6 +7,12 @@ class Entry < ApplicationRecord
   belongs_to :day_log
   belongs_to :food, optional: true
 
+  # #grams keeps its historical column name, but it stores the amount in the
+  # FOOD'S OWN UNIT (see Food#unit) — grams for most foods, millilitres for
+  # a liquid. Renaming the column across a live app isn't worth it; anywhere
+  # the UI shows "g" for this value, it must read the food's unit instead
+  # (Food#unit_abbreviation), not assume grams.
+
   enum :meal, MEALS.index_with(&:itself), validate: true
 
   validates :food_name_snapshot, presence: true
@@ -32,6 +38,13 @@ class Entry < ApplicationRecord
   # the association as it stands right now.
   def from_catalog?
     food_id.present?
+  end
+
+  # "g" for an ad-hoc entry (no food to read a unit from) or one whose food
+  # was later deleted — a neutral default that matches what every entry
+  # showed before Food gained a unit at all.
+  def unit_abbreviation
+    food&.unit_abbreviation || "g"
   end
 
   # The only way a stored entry's macros ever change. An orphaned entry (its

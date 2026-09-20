@@ -18,7 +18,7 @@ RSpec.describe ProgressSummary, type: :model do
   end
 
   describe "week arithmetic" do
-    it "sums each logged day's own goal, not today's goal times seven" do
+    it "budgets all seven days, each against its own goal (a logged day keeps the goal it was logged under)" do
       old_goal = create(:goal, user: user, is_default: false, protein_g: 100, carbs_g: 100, fat_g: 20) # kcal 980
       new_goal = create(:goal, user: user, is_default: true, protein_g: 150, carbs_g: 150, fat_g: 50) # kcal 1650
       log_day(monday, goal: old_goal, kcal: 500)
@@ -26,12 +26,16 @@ RSpec.describe ProgressSummary, type: :model do
 
       summary = ProgressSummary.new(user, today: today)
 
-      expect(summary.week_budget).to eq(980 + 1650)
+      # Monday's own (non-default) goal of 980, plus the other six days of
+      # the week at the current default of 1650 (today's own goal happens to
+      # match it): 980 + 1650 * 6 -- not 1650 * 7, which is what falling back
+      # to the default for every day, ignoring goal versioning, would give.
+      expect(summary.week_budget).to eq(980 + 1650 * 6)
       expect(summary.week_consumed).to eq(1000)
-      expect(summary.week_remaining).to eq(980 + 1650 - 1000)
+      expect(summary.week_remaining).to eq(980 + 1650 * 6 - 1000)
     end
 
-    it "excludes an unlogged day from both sides of the balance" do
+    it "excludes an unlogged day from the consumed side, but still budgets it against the default goal" do
       goal = create(:goal, user: user, is_default: true, protein_g: 500, carbs_g: 0, fat_g: 0) # kcal 2000
       log_day(monday, goal: goal, kcal: 1000)
       # A day_log row exists (as it would after simply opening the app) but
@@ -42,17 +46,18 @@ RSpec.describe ProgressSummary, type: :model do
 
       expect(summary.week_logged_count).to eq(1)
       expect(summary.week_total_days).to eq(7)
-      expect(summary.week_budget).to eq(2000)
+      expect(summary.week_budget).to eq(2000 * 7) # every one of the 7 days budgeted against the (only) goal
       expect(summary.week_consumed).to eq(1000)
     end
 
     it "renders a negative remaining balance rather than clamping at zero" do
-      goal = create(:goal, user: user, is_default: true, protein_g: 250, carbs_g: 0, fat_g: 0) # kcal 1000
+      goal = create(:goal, user: user, is_default: true, protein_g: 25, carbs_g: 0, fat_g: 0) # kcal 100
       log_day(monday, goal: goal, kcal: 1500)
 
       summary = ProgressSummary.new(user, today: today)
 
-      expect(summary.week_remaining).to eq(-500)
+      expect(summary.week_remaining).to eq(100 * 7 - 1500)
+      expect(summary.week_remaining).to be_negative
     end
 
     it "lists only the days still ahead, leaving today to the Hoy tab" do
@@ -97,13 +102,16 @@ RSpec.describe ProgressSummary, type: :model do
 
   describe "empty states" do
     it "reports empty week and month for a user with no logged days at all" do
-      create(:goal, user: user, is_default: true)
+      goal = create(:goal, user: user, is_default: true) # kcal 2497 (factory default)
 
       summary = ProgressSummary.new(user, today: today)
 
       expect(summary.week_empty?).to be(true)
       expect(summary.month_empty?).to be(true)
-      expect(summary.week_remaining).to eq(0)
+      # Still budgeted against the default goal for all 7 days, even though
+      # nothing was consumed — the view hides this behind week_empty? rather
+      # than the model pretending there is no budget at all.
+      expect(summary.week_remaining).to eq(goal.kcal * 7)
       expect(summary.month_average_kcal).to eq(0.0)
       expect(summary.month_on_target_count).to eq(0)
     end

@@ -6,6 +6,14 @@ class Food < ApplicationRecord
   STATES = %w[raw cooked].freeze
   MACRO_FIELDS = %i[kcal_per_100 protein_per_100 carbs_per_100 fat_per_100].freeze
 
+  # A liquid (Coca-Cola, milk) is labelled per 100 ml on the package, not per
+  # 100 g — treating 330 ml as 330 g is off by a few percent for a sugary
+  # drink, and conceptually wrong besides. This changes LABELS ONLY: every
+  # calculation is already proportional to a per-100 basis (see Entry
+  # #compute_from_food), so no arithmetic anywhere depends on the unit.
+  UNITS = %w[grams milliliters].freeze
+  UNIT_ABBREVIATIONS = { "grams" => "g", "milliliters" => "ml" }.freeze
+
   belongs_to :user
   has_many :servings, -> { order(:label) }, dependent: :destroy, inverse_of: :food
   has_many :entries, dependent: :nullify
@@ -16,6 +24,7 @@ class Food < ApplicationRecord
 
   validates :name, presence: true
   validates :state, inclusion: { in: STATES }, allow_nil: true
+  validates :unit, inclusion: { in: UNITS }
   validates(*MACRO_FIELDS, presence: true,
     numericality: { greater_than_or_equal_to: 0, less_than: DECIMAL_COLUMN_LIMIT })
   validates :fiber_per_100, :sodium_per_100, :sugar_per_100,
@@ -68,6 +77,17 @@ class Food < ApplicationRecord
 
   def archived?
     archived_at.present?
+  end
+
+  # "g" or "ml" — the abbreviation used everywhere an amount is shown next
+  # to this food (the entry form, entry rows, the day view).
+  def unit_abbreviation
+    UNIT_ABBREVIATIONS.fetch(unit)
+  end
+
+  # "por cada 100 g" / "por cada 100 ml" — the food form's per-100 header.
+  def per_100_label
+    "por cada 100 #{unit_abbreviation}"
   end
 
   private

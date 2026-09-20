@@ -2,7 +2,7 @@
   <div class="entry__main">
     <h3 class="entry__name"><%= entry.food_name_snapshot %></h3>
     <p class="entry__serving">
-      <%= entry.serving_label.presence || (entry.grams ? "#{number_with_precision(entry.grams, precision: 0)} g" : "—") %>
+      <%= entry.serving_label.presence || (entry.grams ? "#{number_with_precision(entry.grams, precision: 0)} #{entry.unit_abbreviation}" : "—") %>
     </p>
     <%# Each macro keeps its own colour, so a row can be scanned without
         reading the letters. %>

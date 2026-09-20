@@ -20,7 +20,12 @@
     <%= form.select :state, Food::STATES.map { |state| [ t("food.states.#{state}"), state ] }, include_blank: "No aplica" %>
   </div>
 
-  <p class="muted">Valores de la etiqueta, por cada 100 g.</p>
+  <div class="field">
+    <%= form.label :unit, "Unidad" %>
+    <%= form.select :unit, Food::UNITS.map { |unit| [ t("food.units.#{unit}"), unit ] } %>
+  </div>
+
+  <p class="muted">Valores de la etiqueta, <%= food.per_100_label %>.</p>
 
   <div class="field">
     <%= form.label :kcal_per_100, "Calorías" %>

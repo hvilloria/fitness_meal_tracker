@@ -19,6 +19,7 @@ es:
         name: "Nombre"
         brand: "Marca"
         state: "Estado"
+        unit: "Unidad"
         kcal_per_100: "Calorías"
         protein_per_100: "Proteína"
         carbs_per_100: "Carbohidratos"
@@ -44,6 +45,9 @@ es:
     states:
       raw: "Crudo"
       cooked: "Cocido"
+    units:
+      grams: "Gramos"
+      milliliters: "Mililitros"
   meals:
     breakfast: "Desayuno"
     lunch: "Almuerzo"

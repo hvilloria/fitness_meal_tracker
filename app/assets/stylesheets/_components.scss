@@ -195,6 +195,11 @@
   stroke: var(--color-accent);
 }
 
+// A completed ring over goal reads as danger, not success — see days/show.
+.hero__arc--danger {
+  stroke: var(--color-danger);
+}
+
 .hero__readout {
   position: absolute;
   inset: 0;

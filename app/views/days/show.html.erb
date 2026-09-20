@@ -28,15 +28,19 @@
     <svg viewBox="0 0 160 160" role="img"
          aria-label="Calorías: <%= number_with_precision(totals[:kcal], precision: 0) %> de <%= number_with_precision(goal.kcal, precision: 0) %>">
       <circle class="hero__track" cx="80" cy="80" r="70" />
-      <%# r=70 gives a circumference of 2πr = 439.8. %>
-      <circle class="hero__arc" cx="80" cy="80" r="70"
+      <%# r=70 gives a circumference of 2πr = 439.8. A full green ring reads
+          as success, which would contradict an over-goal number — so the
+          arc itself turns danger-red once the goal is exceeded, while
+          staying at a full arc (see #ring_dash_array's own clamp). %>
+      <circle class="<%= class_names("hero__arc", "hero__arc--danger" => remaining[:kcal].negative?) %>"
+              cx="80" cy="80" r="70"
               stroke-dasharray="<%= ring_dash_array(totals[:kcal], goal.kcal, 439.8) %>" />
     </svg>
     <p class="hero__readout">
       <span class="<%= class_names("hero__value", "negative" => remaining[:kcal].negative?) %>">
-        <%= number_with_precision(remaining[:kcal], precision: 0) %>
+        <%= number_with_precision(remaining_amount(remaining[:kcal]), precision: 0) %>
       </span>
-      <span class="hero__unit">kcal restantes</span>
+      <span class="hero__unit"><%= remaining_unit_label(remaining[:kcal]) %></span>
     </p>
   </div>
   <p class="hero__progress tnum">

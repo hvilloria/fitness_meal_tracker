@@ -26,7 +26,12 @@ class EntriesController < ApplicationController
         # logged — otherwise a stale preview invites a double log.
         format.turbo_stream do
           @fresh_entry = Entry.new(meal: @entry.meal)
-          load_food_options unless @ad_hoc
+          # Ad-hoc is the exception, the catalog form is the normal case: a
+          # successful save of either kind returns the catalog form, ready
+          # for the next item, rather than leaving an ad-hoc save stuck on
+          # the ad-hoc form.
+          @ad_hoc = false
+          load_food_options
         end
         format.html { redirect_to new_entry_path(meal: @entry.meal), notice: "Registrado." }
       end

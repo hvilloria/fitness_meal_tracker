@@ -1,9 +1,20 @@
 # Aggregates a user's history into the two horizons the "Progreso" screen
-# reports: an actionable weekly balance and a monthly summary. Both apply the
-# same rule everywhere — a day with no entries is excluded from BOTH sides of
-# the arithmetic, never treated as a day the user ate zero calories (see
-# #days_in). Counting an unlogged Sunday as zero would hand back budget the
-# user actually spent, exactly when the screen matters most.
+# reports: an actionable weekly balance and a monthly summary. The two
+# horizons use different bases, on purpose:
+#
+# The WEEK's budget is the full seven days, each against its OWN goal (goals
+# are versioned, see DayLog#goal_id; an unlogged day falls back to the user's
+# current default goal, since there is no day_log to read a goal from).
+# Consumed stays the sum over logged days only — a day with no entries is
+# never treated as a day the user ate zero calories. The gap between "logged
+# days" and "seven" is real information (the figure is only exact once
+# everything is logged), so the screen shows it as a small secondary line
+# rather than hiding it.
+#
+# The MONTH stays an average over logged days only, on both sides. An
+# average that counted unlogged days as zero would be meaningless (it would
+# just fall as the month goes on), so #days_in still excludes them from both
+# sides there.
 #
 # Dates always come from DayLog.logical_date, never Date.current: the day's
 # own cutoff hour decides which calendar date an entry belongs to, and
@@ -18,7 +29,8 @@ class ProgressSummary
   FULL_DAY_NAMES = %w[lunes martes miércoles jueves viernes sábado domingo].freeze
   DAY_ABBREVIATIONS = %w[Lun Mar Mié Jue Vie Sáb Dom].freeze
 
-  Day = Struct.new(:date, :logged, :kcal, :protein_g, :goal_kcal, :goal_protein_g, keyword_init: true)
+  Day = Struct.new(:date, :logged, :kcal, :protein_g, :carbs_g, :fat_g,
+    :goal_kcal, :goal_protein_g, :goal_carbs_g, :goal_fat_g, keyword_init: true)
 
   attr_reader :user, :today
 
@@ -38,7 +50,7 @@ class ProgressSummary
   end
 
   def week_days
-    @week_days ||= days_in(week_start..week_end)
+    @week_days ||= days_in(week_start..week_end, fallback_goal: default_goal)
   end
 
   def week_logged_days
@@ -57,8 +69,9 @@ class ProgressSummary
     week_logged_count.zero?
   end
 
+  # All seven days, each against its own goal — see the class comment.
   def week_budget
-    week_logged_days.sum(&:goal_kcal)
+    week_days.sum(&:goal_kcal)
   end
 
   def week_consumed
@@ -67,6 +80,30 @@ class ProgressSummary
 
   def week_remaining
     week_budget - week_consumed
+  end
+
+  def week_protein_consumed
+    week_logged_days.sum(&:protein_g)
+  end
+
+  def week_protein_goal
+    week_days.sum(&:goal_protein_g)
+  end
+
+  def week_carbs_consumed
+    week_logged_days.sum(&:carbs_g)
+  end
+
+  def week_carbs_goal
+    week_days.sum(&:goal_carbs_g)
+  end
+
+  def week_fat_consumed
+    week_logged_days.sum(&:fat_g)
+  end
+
+  def week_fat_goal
+    week_days.sum(&:goal_fat_g)
   end
 
   # The days still ahead of today within the week. Today itself is left out
@@ -134,6 +171,12 @@ class ProgressSummary
   end
 
   private
+    # Fetched once and memoised: week_days is itself memoised, so this runs
+    # at most one query regardless of how many unlogged days the week has.
+    def default_goal
+      @default_goal ||= user.default_goal
+    end
+
     def average(days, field)
       return 0.0 if days.empty?
 
@@ -152,7 +195,14 @@ class ProgressSummary
     # range's entry totals. A day with no rows in the second query simply
     # never becomes a key in `sums`, which is exactly how "no entries at
     # all" is told apart from "logged, totalling zero".
-    def days_in(range)
+    #
+    # fallback_goal supplies the goal fields for an unlogged day (there is no
+    # day_log to read a goal from). The week passes the user's current
+    # default goal so every one of its seven days carries a real goal; the
+    # month passes nothing, because an unlogged day's goal is never read
+    # there (month_logged_days excludes it from both sides — see the class
+    # comment).
+    def days_in(range, fallback_goal: nil)
       day_logs_by_date = user.day_logs.where(date: range).includes(:goal).index_by(&:date)
       sums = entry_sums_for(day_logs_by_date.values.map(&:id))
 
@@ -164,10 +214,16 @@ class ProgressSummary
           Day.new(
             date: date, logged: true,
             kcal: totals[:kcal], protein_g: totals[:protein_g],
-            goal_kcal: day_log.goal.kcal.to_f, goal_protein_g: day_log.goal.protein_g.to_f
+            carbs_g: totals[:carbs_g], fat_g: totals[:fat_g],
+            goal_kcal: day_log.goal.kcal.to_f, goal_protein_g: day_log.goal.protein_g.to_f,
+            goal_carbs_g: day_log.goal.carbs_g.to_f, goal_fat_g: day_log.goal.fat_g.to_f
           )
         else
-          Day.new(date: date, logged: false, kcal: 0.0, protein_g: 0.0, goal_kcal: 0.0, goal_protein_g: 0.0)
+          Day.new(
+            date: date, logged: false, kcal: 0.0, protein_g: 0.0, carbs_g: 0.0, fat_g: 0.0,
+            goal_kcal: fallback_goal&.kcal.to_f, goal_protein_g: fallback_goal&.protein_g.to_f,
+            goal_carbs_g: fallback_goal&.carbs_g.to_f, goal_fat_g: fallback_goal&.fat_g.to_f
+          )
         end
       end
     end
@@ -177,7 +233,7 @@ class ProgressSummary
 
       Entry.where(day_log_id: day_log_ids)
         .group(:day_log_id)
-        .pluck(:day_log_id, Arel.sql("SUM(kcal)"), Arel.sql("SUM(protein_g)"))
-        .to_h { |id, kcal, protein| [ id, { kcal: kcal.to_f, protein_g: protein.to_f } ] }
+        .pluck(:day_log_id, Arel.sql("SUM(kcal)"), Arel.sql("SUM(protein_g)"), Arel.sql("SUM(carbs_g)"), Arel.sql("SUM(fat_g)"))
+        .to_h { |id, kcal, protein, carbs, fat| [ id, { kcal: kcal.to_f, protein_g: protein.to_f, carbs_g: carbs.to_f, fat_g: fat.to_f } ] }
     end
 end

@@ -15,4 +15,17 @@ module DaysHelper
 
     ((current.to_f / goal.to_f).clamp(0.0, 1.0) * 100).round(1)
   end
+
+  # A negative remaining figure is shown as its absolute value under
+  # "excedidas" rather than as a bare negative number under "restantes": a
+  # full green ring reading "-1497 kcal restantes" contradicts itself, and
+  # the words should say what actually happened. The number itself is never
+  # clamped at zero — only its label changes here.
+  def remaining_amount(remaining)
+    remaining.abs
+  end
+
+  def remaining_unit_label(remaining, unit: "kcal")
+    remaining.negative? ? "#{unit} excedidas" : "#{unit} restantes"
+  end
 end

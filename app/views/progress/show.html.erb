@@ -1,9 +1,10 @@
 <% content_for :title, "Progreso" %>
 
-<%# The week is the unit of outcome, so it leads with a budget: the sum of
-    each logged day's OWN goal against what was actually eaten. Unlogged
-    days sit out of both sides of the sum — see ProgressSummary — and the
-    screen says so plainly rather than burying it as a footnote. %>
+<%# The week is the unit of outcome, so it leads with a budget: all seven
+    days, each against its OWN goal (an unlogged day falls back to the
+    user's current default goal — see ProgressSummary). Consumed still only
+    counts logged days, so the "Registrados X de 7 días" line is the honesty
+    signal: the figure is only exact once everything is logged. %>
 <section class="card stack" aria-label="Semana">
   <h2>Semana</h2>
 
@@ -17,20 +18,35 @@
         / <%= number_with_precision(@summary.week_budget, precision: 0, delimiter: ".") %> kcal
       </span>
     </p>
+    <%# Same treatment as the day screen's hero number: a negative balance
+        shows its absolute value under "excedidas" rather than a bare
+        negative under "restantes" — see DaysHelper#remaining_unit_label. %>
     <p class="tnum">
       <span class="<%= class_names("negative" => @summary.week_remaining.negative?) %>">
-        Te quedan <%= number_with_precision(@summary.week_remaining, precision: 0, delimiter: ".") %>
+        <%= number_with_precision(remaining_amount(@summary.week_remaining), precision: 0, delimiter: ".") %>
+        <%= remaining_unit_label(@summary.week_remaining) %>
       </span>
       para <%= @summary.week_upcoming_label %>
     </p>
     <p class="muted field__hint">
-      Sobre <%= @summary.week_logged_count %> de <%= @summary.week_total_days %> días registrados.
+      Registrados <%= @summary.week_logged_count %> de <%= @summary.week_total_days %> días.
     </p>
 
     <div class="weekbars" role="img" aria-label="Calorías por día de la semana">
       <% @summary.week_days.each_with_index do |day, index| %>
         <%= render "week_day_bar", day: day, label: ProgressSummary::DAY_ABBREVIATIONS[index] %>
       <% end %>
+    </div>
+
+    <%# Calories say how much; these macro totals say what to eat with the
+        rest of the week's budget — styled like the day screen's bars. %>
+    <div class="macros" aria-label="Macros de la semana">
+      <%= render "days/macro_bar", label: "Proteína", current: @summary.week_protein_consumed,
+            goal: @summary.week_protein_goal, color_var: "--color-protein" %>
+      <%= render "days/macro_bar", label: "Carbos", current: @summary.week_carbs_consumed,
+            goal: @summary.week_carbs_goal, color_var: "--color-carbs" %>
+      <%= render "days/macro_bar", label: "Grasa", current: @summary.week_fat_consumed,
+            goal: @summary.week_fat_goal, color_var: "--color-fat" %>
     </div>
   <% end %>
 </section>
