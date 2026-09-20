@@ -100,6 +100,15 @@
   }
 }
 
+// The entry form's amount is one control in two halves: how many, and of
+// what. Side by side from the narrowest screen up — they read as a single
+// phrase, and each half still fills a full tap target.
+.amount {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
 .field__hint {
   color: var(--color-muted);
   font-size: var(--text-xs);

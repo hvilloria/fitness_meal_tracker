@@ -14,6 +14,13 @@ module EntriesHelper
           kcal: food.kcal_per_100, protein: food.protein_per_100,
           carbs: food.carbs_per_100, fat: food.fat_per_100,
           unit: food.unit_abbreviation,
+          multiple_unit: food.multiple_unit_abbreviation,
+          # The units on offer depend on the food, so the servings travel
+          # with it: entry_preview_controller.js rebuilds the unit select
+          # from this when the selection changes.
+          servings: food.servings.map { |serving|
+            { id: serving.id, label: serving.label, grams: serving.grams.to_f }
+          }.to_json,
           last_grams: last_grams[food.id]
         }
       }
@@ -28,5 +35,28 @@ module EntriesHelper
     groups << [ "Recientes", recent_foods.map { |food| food_select_option(food, last_grams) } ] if recent_foods.any?
     groups << [ "Todo el catálogo", other_foods.map { |food| food_select_option(food, last_grams) } ] if other_foods.any?
     groups
+  end
+
+  # The units an amount of this food can be typed in: its base unit, the
+  # same unit ×1000, and one per serving it defines. Each option carries how
+  # much of the base unit it is worth, which is all the preview and the
+  # server both need — see EntriesController#amount_resolution.
+  #
+  # With no food selected there is nothing to read a unit from, so this
+  # offers the neutral grams pair; the browser replaces the whole list as
+  # soon as a food is picked.
+  def entry_unit_options(food)
+    base = food&.unit_abbreviation || "g"
+    multiple = food&.multiple_unit_abbreviation || "kg"
+
+    options = [
+      [ base, Entry::BASE_UNIT, { data: { grams: 1 } } ],
+      [ multiple, Entry::MULTIPLE_UNIT, { data: { grams: Food::MULTIPLE_FACTOR } } ]
+    ]
+    return options if food.nil?
+
+    options + food.servings.map do |serving|
+      [ serving.label, "#{Entry::SERVING_UNIT_PREFIX}#{serving.id}", { data: { grams: serving.grams.to_f } } ]
+    end
   end
 end

@@ -4,6 +4,15 @@
 class Entry < ApplicationRecord
   MEALS = %w[breakfast lunch snack dinner].freeze
 
+  # The entry form's amount is a quantity plus a unit, and the unit is only
+  # ever the multiplier that turns that quantity into the food's base unit
+  # (see EntriesController#amount_resolution). These are the values that
+  # unit select posts; a serving's option carries its own id after the
+  # prefix, since the servings on offer belong to the selected food.
+  BASE_UNIT = "base".freeze
+  MULTIPLE_UNIT = "x1000".freeze
+  SERVING_UNIT_PREFIX = "serving:".freeze
+
   belongs_to :day_log
   belongs_to :food, optional: true
 
@@ -12,6 +21,11 @@ class Entry < ApplicationRecord
   # a liquid. Renaming the column across a live app isn't worth it; anywhere
   # the UI shows "g" for this value, it must read the food's unit instead
   # (Food#unit_abbreviation), not assume grams.
+
+  # Form-only, never stored: #grams remains the canonical amount, in the
+  # food's own unit. They are kept on the record so a form re-rendered after
+  # a validation error still shows what the user typed and picked.
+  attr_accessor :quantity, :unit
 
   enum :meal, MEALS.index_with(&:itself), validate: true
 

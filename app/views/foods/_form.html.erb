@@ -57,9 +57,30 @@
 
   <h2>Porciones</h2>
   <p class="muted">Por ejemplo "1 feta" equivale a 30 g.</p>
-  <%= form.fields_for :servings do |serving_form| %>
-    <%= render "serving_fields", form: serving_form %>
-  <% end %>
+
+  <div class="stack" data-controller="nested-fields">
+    <div class="stack" data-nested-fields-target="list">
+      <%# include_id: false because each row renders its own hidden id (see
+          _serving_fields): fields_for would append it after the row instead
+          of inside it, and the remove button needs it within the row. %>
+      <%= form.fields_for :servings, include_id: false do |serving_form| %>
+        <%= render "serving_fields", form: serving_form %>
+      <% end %>
+    </div>
+
+    <%# The blank row to clone. Its index is a placeholder the Stimulus
+        controller swaps for a unique one, so two rows added in a row do not
+        collide under the same servings_attributes key. %>
+    <template data-nested-fields-target="template">
+      <%= form.fields_for :servings, Serving.new, child_index: "NEW_RECORD", include_id: false do |serving_form| %>
+        <%= render "serving_fields", form: serving_form %>
+      <% end %>
+    </template>
+
+    <button type="button" class="button button--quiet" data-action="nested-fields#add">
+      Agregar porción
+    </button>
+  </div>
 
   <%= form.submit "Guardar", class: "button button--primary" %>
 <% end %>

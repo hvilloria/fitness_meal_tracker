@@ -18,14 +18,22 @@
           data: { entry_preview_target: "food", action: "change->entry-preview#foodChanged" } %>
   </div>
 
-  <div class="field">
-    <%# The unit follows the selected food (g or ml) — see
-        entry_preview_controller.js#foodChanged. %>
-    <%= form.label :grams do %>
-      Peso (<span data-entry-preview-target="unitLabel">g</span>)
-    <% end %>
-    <%= form.number_field :grams, step: :any, inputmode: "decimal",
-          data: { entry_preview_target: "grams" } %>
+  <%# The amount is a quantity plus the unit it is counted in. The units on
+      offer belong to the selected food (its own g/ml, that unit ×1000, and
+      each of its servings), so the list is rebuilt in the browser whenever
+      the food changes — see entry_preview_controller.js#foodChanged. %>
+  <div class="amount">
+    <div class="field">
+      <%= form.label :quantity, "Cantidad" %>
+      <%= form.number_field :quantity, step: :any, inputmode: "decimal",
+            data: { entry_preview_target: "quantity" } %>
+    </div>
+
+    <div class="field">
+      <%= form.label :unit, "Unidad" %>
+      <%= form.select :unit, entry_unit_options(entry.food), {},
+            data: { entry_preview_target: "unit" } %>
+    </div>
   </div>
 
   <div class="card preview">

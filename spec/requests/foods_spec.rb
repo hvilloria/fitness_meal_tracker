@@ -38,6 +38,130 @@ RSpec.describe "Foods", type: :request do
     expect(food.servings.first.label).to eq("1 feta")
   end
 
+  describe "serving management" do
+    let(:macros) { { kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12 } }
+
+    it "creates a food with two servings" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Queso", **macros,
+          servings_attributes: {
+            "0" => { label: "1 feta", grams: "15" },
+            "1" => { label: "1 scoop", grams: "30" }
+          }
+        }
+      }
+
+      expect(Food.find_by(name: "Queso").servings.pluck(:label, :grams))
+        .to contain_exactly([ "1 feta", 15 ], [ "1 scoop", 30 ])
+    end
+
+    it "removes a serving on edit through its _destroy field" do
+      food = create(:food, user: user)
+      kept = create(:serving, food: food, label: "1 feta", grams: 15)
+      removed = create(:serving, food: food, label: "1 scoop", grams: 30)
+
+      patch food_path(food), params: {
+        food: {
+          servings_attributes: {
+            "0" => { id: kept.id, label: kept.label, grams: kept.grams },
+            "1" => { id: removed.id, label: removed.label, grams: removed.grams, _destroy: "1" }
+          }
+        }
+      }
+
+      expect(food.servings.reload.map(&:label)).to eq([ "1 feta" ])
+    end
+
+    it "clears the first default when a second serving is made the default" do
+      food = create(:food, user: user)
+      first = create(:serving, food: food, label: "1 feta", grams: 15, is_default: true)
+      second = create(:serving, food: food, label: "1 scoop", grams: 30)
+
+      patch food_path(food), params: {
+        food: {
+          servings_attributes: {
+            "0" => { id: second.id, label: second.label, grams: second.grams, is_default: "1" }
+          }
+        }
+      }
+
+      expect(second.reload.is_default).to be(true)
+      expect(first.reload.is_default).to be(false)
+    end
+
+    it "takes the number out of a grams value typed with its unit" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Con unidad", **macros,
+          servings_attributes: { "0" => { label: "1 feta", grams: "30g" } }
+        }
+      }
+
+      expect(Food.find_by(name: "Con unidad").servings.first.grams).to eq(30)
+    end
+
+    it "takes the number out of a grams value typed with a comma and its unit" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Coma y unidad", **macros,
+          servings_attributes: { "0" => { label: "1 feta", grams: "1,5 g" } }
+        }
+      }
+
+      expect(Food.find_by(name: "Coma y unidad").servings.first.grams).to eq(1.5)
+    end
+
+    it "still rejects a grams value that is not a number at all" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Sin número", **macros,
+          servings_attributes: { "0" => { label: "1 feta", grams: "treinta" } }
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Food.find_by(name: "Sin número")).to be_nil
+    end
+
+    it "saves a food whose extra serving row was left blank" do
+      user
+
+      # The is_default check box posts "0" even for an untouched row, so a
+      # blank row is not "all blank" as far as Rails is concerned.
+      post foods_path, params: {
+        food: {
+          name: "Fila vacía", **macros,
+          servings_attributes: { "0" => { label: "", grams: "", is_default: "0" } }
+        }
+      }
+
+      food = Food.find_by(name: "Fila vacía")
+      expect(food).to be_present
+      expect(food.servings).to be_empty
+    end
+
+    it "renders a removable row per serving, plus a blank one to clone" do
+      food = create(:food, user: user)
+      create(:serving, food: food, label: "1 feta", grams: 15)
+      create(:serving, food: food, label: "1 scoop", grams: 30)
+
+      get edit_food_path(food)
+
+      expect(response.body.scan("Quitar porción").size).to eq(3)
+      expect(response.body).to include("Agregar porción")
+      expect(response.body).to include("NEW_RECORD")
+    end
+  end
+
   it "creates a food without calories, deriving them from the macros" do
     user
 

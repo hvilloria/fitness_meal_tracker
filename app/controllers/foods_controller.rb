@@ -68,7 +68,14 @@ class FoodsController < ApplicationController
       return permitted if nested.blank?
 
       entries = nested.respond_to?(:each_value) ? nested.each_value : nested
-      entries.each { |serving| normalize_decimals(serving, :grams) if serving.respond_to?(:[]=) }
+      entries.each do |serving|
+        next unless serving.respond_to?(:[]=)
+
+        normalize_decimals(serving, :grams)
+        # The grams field is typed by hand and the unit habitually comes with
+        # it ("30 g"). See NormalizesDecimalParams::AMOUNT_WITH_UNIT.
+        strip_unit_suffixes(serving, :grams)
+      end
       permitted
     end
 end

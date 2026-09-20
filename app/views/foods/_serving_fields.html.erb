@@ -1,14 +1,32 @@
-<div class="card stack">
+<div class="card stack" data-nested-fields-target="item">
   <div class="field">
     <%= form.label :label, "Etiqueta" %>
-    <%= form.text_field :label %>
+    <%= form.text_field :label, placeholder: "1 feta" %>
   </div>
   <div class="field">
     <%= form.label :grams, "Gramos" %>
-    <%= form.number_field :grams, step: :any, inputmode: "decimal" %>
+    <%# A text field, not a number field: this is where the unit gets typed
+        along with the number ("30 g"), and a number input answers that by
+        handing the server an empty string — the typed value disappears with
+        nothing to report. As text it arrives intact and
+        NormalizesDecimalParams takes the number out of it. %>
+    <%= form.text_field :grams, inputmode: "decimal" %>
   </div>
   <label class="row">
     <%= form.check_box :is_default %>
     Preseleccionar esta porción
   </label>
+
+  <%# Only a saved row needs these: its id, so the update finds it, and the
+      flag accepts_nested_attributes_for's allow_destroy reads to delete it
+      (see nested_fields_controller.js#remove). The id is rendered here
+      rather than by fields_for, which would place it outside this row. %>
+  <% if form.object.persisted? %>
+    <%= form.hidden_field :id %>
+    <%= form.hidden_field :_destroy %>
+  <% end %>
+
+  <button type="button" class="button button--quiet" data-action="nested-fields#remove">
+    Quitar porción
+  </button>
 </div>

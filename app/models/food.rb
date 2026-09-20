@@ -13,12 +13,24 @@ class Food < ApplicationRecord
   # #compute_from_food), so no arithmetic anywhere depends on the unit.
   UNITS = %w[grams milliliters].freeze
   UNIT_ABBREVIATIONS = { "grams" => "g", "milliliters" => "ml" }.freeze
+  # The same unit a thousand times over, offered beside the base one so a
+  # bulk amount is typed as "0.5 kg" instead of "500". It is a multiplier on
+  # the way in and nothing else: #grams still stores the base unit.
+  UNIT_MULTIPLES = { "grams" => "kg", "milliliters" => "l" }.freeze
+  MULTIPLE_FACTOR = 1000
 
   belongs_to :user
   has_many :servings, -> { order(:label) }, dependent: :destroy, inverse_of: :food
   has_many :entries, dependent: :nullify
 
-  accepts_nested_attributes_for :servings, allow_destroy: true, reject_if: :all_blank
+  # :all_blank is not enough here: every serving row carries an is_default
+  # check box, whose companion hidden input posts "0" even for a row the user
+  # never filled in. That "0" is not blank, so :all_blank would keep the row
+  # and fail validation on its missing label — a blank row added and then left
+  # alone would block the whole save. Judge the row by what was actually
+  # typed into it instead.
+  accepts_nested_attributes_for :servings, allow_destroy: true,
+    reject_if: ->(attributes) { attributes[:label].blank? && attributes[:grams].blank? }
 
   before_validation :nilify_blank_state
   before_validation :derive_kcal_per_100_if_blank
@@ -84,6 +96,12 @@ class Food < ApplicationRecord
   # to this food (the entry form, entry rows, the day view).
   def unit_abbreviation
     UNIT_ABBREVIATIONS.fetch(unit)
+  end
+
+  # "kg" or "l" — the ×1000 unit offered beside the base one on the entry
+  # form (see EntriesHelper#entry_unit_options).
+  def multiple_unit_abbreviation
+    UNIT_MULTIPLES.fetch(unit)
   end
 
   # "por cada 100 g" / "por cada 100 ml" — the food form's per-100 header.
