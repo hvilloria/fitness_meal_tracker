@@ -24,13 +24,15 @@
           data: { entry_preview_target: "grams" } %>
   </div>
 
-  <div class="card">
-    <strong><span data-entry-preview-target="kcal">0</span> kcal</strong>
-    <div class="muted">
-      P <span data-entry-preview-target="protein">0</span> ·
-      C <span data-entry-preview-target="carbs">0</span> ·
-      G <span data-entry-preview-target="fat">0</span>
-    </div>
+  <div class="card preview">
+    <p class="preview__value tnum">
+      <span data-entry-preview-target="kcal">0</span> kcal
+    </p>
+    <ul class="chips">
+      <li class="chip chip--protein"><span class="chip__key">P</span><span data-entry-preview-target="protein">0</span></li>
+      <li class="chip chip--carbs"><span class="chip__key">C</span><span data-entry-preview-target="carbs">0</span></li>
+      <li class="chip chip--fat"><span class="chip__key">G</span><span data-entry-preview-target="fat">0</span></li>
+    </ul>
   </div>
 
   <%= form.submit "Agregar", class: "button button--primary" %>

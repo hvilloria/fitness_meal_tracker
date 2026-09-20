@@ -1,14 +1,26 @@
-<div class="card row" style="justify-content: space-between;" id="<%= dom_id(entry) %>">
-  <div>
-    <strong><%= entry.food_name_snapshot %></strong>
-    <div class="muted">
-      <%= entry.serving_label.presence || (entry.grams ? "#{number_with_precision(entry.grams, precision: 0)} g" : "—") %> ·
-      <%= number_with_precision(entry.kcal, precision: 0) %> kcal ·
-      P <%= number_with_precision(entry.protein_g, precision: 1) %> ·
-      C <%= number_with_precision(entry.carbs_g, precision: 1) %> ·
-      G <%= number_with_precision(entry.fat_g, precision: 1) %>
-    </div>
+<article class="entry" id="<%= dom_id(entry) %>">
+  <div class="entry__main">
+    <h3 class="entry__name"><%= entry.food_name_snapshot %></h3>
+    <p class="entry__serving">
+      <%= entry.serving_label.presence || (entry.grams ? "#{number_with_precision(entry.grams, precision: 0)} g" : "—") %>
+    </p>
+    <%# Each macro keeps its own colour, so a row can be scanned without
+        reading the letters. %>
+    <ul class="chips">
+      <li class="chip chip--kcal"><span class="chip__key">kcal</span><%= number_with_precision(entry.kcal, precision: 0) %></li>
+      <li class="chip chip--protein"><span class="chip__key">P</span><%= number_with_precision(entry.protein_g, precision: 1) %></li>
+      <li class="chip chip--carbs"><span class="chip__key">C</span><%= number_with_precision(entry.carbs_g, precision: 1) %></li>
+      <li class="chip chip--fat"><span class="chip__key">G</span><%= number_with_precision(entry.fat_g, precision: 1) %></li>
+    </ul>
   </div>
-  <%= button_to "Borrar", entry_path(entry), method: :delete, class: "button",
-        data: { turbo_confirm: "¿Borrar?" } %>
-</div>
+
+  <%= button_to entry_path(entry), method: :delete, class: "icon-button",
+        form_class: "entry__delete", aria: { label: "Borrar" },
+        data: { turbo_confirm: "¿Borrar?" } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M4 7h16M10 11v6M14 11v6" />
+      <path d="M6 7l1 13h10l1-13M9 7V4h6v3" />
+    </svg>
+  <% end %>
+</article>

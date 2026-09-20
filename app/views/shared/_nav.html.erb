@@ -1,6 +1,42 @@
-<nav class="nav">
-  <%= link_to "Hoy", root_path %>
-  <%= link_to "Alimentos", foods_path %>
-  <%= link_to "Meta", edit_goal_path %>
-  <%= button_to "Salir", sign_out_path, method: :delete, class: "button" %>
+<%# The bottom bar is the whole navigation: three daily destinations, each an
+    icon plus a label. "Salir" is not a daily action and lives at the foot of
+    the Meta screen instead. Icons are inline SVG on purpose — this app loads
+    no external assets and must keep it that way. %>
+<% section = nav_section %>
+
+<nav class="tabbar" aria-label="Navegación principal">
+  <%= link_to root_path,
+        class: class_names("tabbar__tab", "tabbar__tab--active" => section == :today),
+        aria: { current: ("page" if section == :today) } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M8 3v4M16 3v4M3 10h18" />
+      <path d="m9 15 2 2 4-4" />
+    </svg>
+    <span>Hoy</span>
+  <% end %>
+
+  <%= link_to foods_path,
+        class: class_names("tabbar__tab", "tabbar__tab--active" => section == :foods),
+        aria: { current: ("page" if section == :foods) } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M9 6h12M9 12h12M9 18h12" />
+      <path d="M4 6h.01M4 12h.01M4 18h.01" />
+    </svg>
+    <span>Alimentos</span>
+  <% end %>
+
+  <%= link_to edit_goal_path,
+        class: class_names("tabbar__tab", "tabbar__tab--active" => section == :goal),
+        aria: { current: ("page" if section == :goal) } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.5" />
+    </svg>
+    <span>Meta</span>
+  <% end %>
 </nav>

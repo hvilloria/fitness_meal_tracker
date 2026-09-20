@@ -1,10 +1,15 @@
 :root {
+  // Three surface tones carry the hierarchy instead of a border on every
+  // box: the page recedes, a card sits on it, a raised box sits on a card.
   --color-bg: #12141a;
   --color-surface: #1c1f27;
+  --color-raised: #252935;
   --color-text: #f2f4f8;
   --color-muted: #9aa1ae;
   --color-border: #2b2f3a;
+  // Reserved for the primary action and for progress. Nothing else.
   --color-accent: #4ade80;
+  --color-accent-ink: #0b1f14;
   --color-danger: #f87171;
 
   --color-protein: #60a5fa;
@@ -17,6 +22,17 @@
   --space-4: 1.5rem;
   --space-5: 2.5rem;
 
+  // A deliberate scale: caption, body, section heading, screen heading and
+  // the one hero figure. Nothing in the app picks a size outside it.
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-hero: 2.75rem;
+
   --radius: 0.75rem;
+  --radius-sm: 0.375rem;
   --tap-target: 2.75rem;
+  --tabbar-height: 3.75rem;
 }

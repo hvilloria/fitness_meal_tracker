@@ -15,33 +15,39 @@
     <%= number_field_tag :kcal, @goal.kcal || 0, step: 1, inputmode: "numeric",
           class: "goal-total__value",
           data: { macro_calculator_target: "kcal", action: "change->macro-calculator#distribute" } %>
-    <span class="muted">kcal objetivo</span>
+    <span class="goal-total__unit">kcal objetivo</span>
   </div>
 
   <div class="field">
     <%= form.label :protein_g, "Proteína (g)" %>
     <%= form.number_field :protein_g, step: 1, inputmode: "numeric",
           data: { macro_calculator_target: "protein", action: "input->macro-calculator#recalculate" } %>
-    <span class="muted"><span data-macro-calculator-target="proteinPct">0</span>% de las calorías</span>
+    <span class="field__hint"><span data-macro-calculator-target="proteinPct">0</span>% de las calorías</span>
   </div>
 
   <div class="field">
     <%= form.label :carbs_g, "Carbohidratos (g)" %>
     <%= form.number_field :carbs_g, step: 1, inputmode: "numeric",
           data: { macro_calculator_target: "carbs", action: "input->macro-calculator#recalculate" } %>
-    <span class="muted"><span data-macro-calculator-target="carbsPct">0</span>% de las calorías</span>
+    <span class="field__hint"><span data-macro-calculator-target="carbsPct">0</span>% de las calorías</span>
   </div>
 
   <div class="field">
     <%= form.label :fat_g, "Grasa (g)" %>
     <%= form.number_field :fat_g, step: 1, inputmode: "numeric",
           data: { macro_calculator_target: "fat", action: "input->macro-calculator#recalculate" } %>
-    <span class="muted"><span data-macro-calculator-target="fatPct">0</span>% de las calorías</span>
+    <span class="field__hint"><span data-macro-calculator-target="fatPct">0</span>% de las calorías</span>
   </div>
 
-  <p class="muted">
+  <p class="empty">
     Cambiá las calorías o cualquiera de los tres macros: los demás se recalculan solos.
   </p>
 
   <%= form.submit "Guardar meta", class: "button button--primary" %>
 <% end %>
+
+<%# Signing out is not a daily action, so it sits here rather than in the tab
+    bar — the foot of the only screen a user visits rarely. %>
+<div class="footer-action">
+  <%= button_to "Salir", sign_out_path, method: :delete, class: "button button--quiet" %>
+</div>

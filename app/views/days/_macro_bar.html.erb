@@ -1,0 +1,13 @@
+<%# locals: label, current, goal, color_var %>
+<div>
+  <div class="macro__head">
+    <span class="macro__label" style="color: var(<%= color_var %>);"><%= label %></span>
+    <span class="macro__figures">
+      <%= number_with_precision(current, precision: 0) %><span class="muted"> / <%= number_with_precision(goal, precision: 0) %> g</span>
+    </span>
+  </div>
+  <div class="macro__track" role="img"
+       aria-label="<%= label %>: <%= number_with_precision(current, precision: 0) %> de <%= number_with_precision(goal, precision: 0) %> g">
+    <div class="macro__fill" style="width: <%= bar_percentage(current, goal) %>%; background: var(<%= color_var %>);"></div>
+  </div>
+</div>
