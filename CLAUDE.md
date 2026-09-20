@@ -77,13 +77,38 @@ as separate jobs, with the `test` job using a Postgres service container.
 
 RuboCop is `rubocop-rails-omakase`. Keep it clean — CI gates on it.
 
-## Deployment status
+## Deploying
 
-Not settled yet. The intended target is Supabase for Postgres plus a separate
-free host for the container. Two things must be resolved first:
+Target: **Render** (Docker web service, free tier, 512 MB RAM, sleeps after 15
+minutes idle) plus **Neon** serverless Postgres, a single database reached
+entirely through `DATABASE_URL`. The blueprint is `render.yaml` at the repo
+root.
 
-- `config/database.yml` declares separate `cache`, `queue` and `cable`
-  databases for solid_cache/solid_queue/solid_cable. Supabase provides one.
-- Supabase direct connections are IPv6-only. Connect through the Supavisor
-  pooler on port **5432** (session mode); port 6543 is transaction mode and
-  breaks Active Record's prepared statements.
+Required env vars (set in Render's dashboard when prompted by the blueprint,
+never committed): `DATABASE_URL`, `RAILS_MASTER_KEY`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`.
+
+The solid_* stack (`solid_cache`, `solid_queue`, `solid_cable`) was
+deliberately removed: with one database, two users, no background jobs and no
+websockets anywhere in the app, those gems were pure weight on a 512 MB
+instance. Production uses `:memory_store` for caching, `:async` for both
+Active Job and Action Cable.
+
+**Start command.** The Dockerfile's default `CMD` boots through Thruster on
+port 80 and is left unchanged (`compose.prod.yaml` depends on it), but Render
+injects its own `$PORT` and Thruster would collide with Puma over it.
+`render.yaml` overrides the start command for the deployed service to bind
+Puma directly: `./bin/rails server -b 0.0.0.0 -p $PORT`. `bin/docker-entrypoint`
+detects any `./bin/rails server` invocation regardless of trailing flags and
+runs `db:prepare` first — see its comment for why the check is shaped that
+way (it must not fire for `console` or a one-off task).
+
+**TLS.** Render terminates TLS at its proxy, so `config/environments/production.rb`
+sets both `config.assume_ssl = true` and `config.force_ssl = true`. Without
+`assume_ssl`, Rails would see plain HTTP behind the proxy and `force_ssl`
+would redirect in a loop.
+
+**Connection pool.** `RAILS_MAX_THREADS` (default 3, see `config/puma.rb`)
+drives `max_connections` in `config/database.yml`'s production block, so the
+pool matches Puma's thread count — no starvation, no over-allocating against
+Neon's connection limit for two users on a single Puma process.

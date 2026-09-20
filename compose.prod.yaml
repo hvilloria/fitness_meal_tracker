@@ -4,13 +4,11 @@
 #   RAILS_MASTER_KEY=$(cat config/master.key) \
 #     docker compose -f compose.prod.yaml up --build
 #
-# DATABASE_URL must point at Supabase using the Supavisor pooler on port
-# 5432 (session mode). Port 6543 is transaction mode and breaks Active
-# Record's prepared statements.
+# DATABASE_URL must point at Neon (single database — see config/database.yml).
 #
-# Note: config/database.yml still declares separate cache, queue and cable
-# databases for solid_cache/solid_queue/solid_cable. That has to be resolved
-# before this runs against Supabase, which provides a single database.
+# This still boots through the Dockerfile's default CMD (Thruster on port
+# 80, mapped to 8080 below). The deployed Render service overrides that
+# start command to bind Puma directly to $PORT instead; see render.yaml.
 name: fitness_meal_tracker_production
 
 services:
