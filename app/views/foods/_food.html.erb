@@ -1,7 +1,9 @@
 <article class="entry">
   <div class="entry__main">
     <h3 class="entry__name"><%= food.display_name %></h3>
-    <p class="entry__serving"><%= t("food.states.#{food.state}") %> · por 100 g</p>
+    <p class="entry__serving">
+      <% if food.state.present? %><%= t("food.states.#{food.state}") %> · <% end %>por 100 g
+    </p>
     <ul class="chips">
       <li class="chip chip--kcal"><span class="chip__key">kcal</span><%= number_with_precision(food.kcal_per_100, precision: 0) %></li>
       <li class="chip chip--protein"><span class="chip__key">P</span><%= number_with_precision(food.protein_per_100, precision: 1) %></li>

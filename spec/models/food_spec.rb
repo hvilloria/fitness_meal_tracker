@@ -5,7 +5,14 @@ RSpec.describe Food, type: :model do
 
   it { is_expected.to belong_to(:user) }
   it { is_expected.to validate_presence_of(:name) }
-  it { is_expected.to validate_presence_of(:state) }
+  it { is_expected.to validate_inclusion_of(:state).in_array(Food::STATES).allow_nil }
+
+  it "treats a blank state the same as nil (the form's blank option posts \"\")" do
+    food = build(:food, state: "")
+
+    expect(food).to be_valid
+    expect(food.state).to be_nil
+  end
 
   it "requires the four core macro fields" do
     food = build(:food, kcal_per_100: nil, protein_per_100: nil, carbs_per_100: nil, fat_per_100: nil)
@@ -34,14 +41,20 @@ RSpec.describe Food, type: :model do
         .to eq("Pechuga de pollo")
     end
 
-    it "includes the state when it is not as_sold" do
+    it "includes the state when present" do
       expect(build(:food, name: "Pollo", brand: nil, state: "raw").display_name)
         .to eq("Pollo (crudo)")
     end
 
-    it "omits the state when it is as_sold" do
-      expect(build(:food, name: "Pollo", brand: nil, state: "as_sold").display_name)
+    it "omits the state when it is blank (not applicable, e.g. a packaged food)" do
+      expect(build(:food, name: "Pollo", brand: nil, state: nil).display_name)
         .to eq("Pollo")
+    end
+
+    it "renders without a trailing parenthesis when there is no brand and no state" do
+      expect(build(:food, name: "Arroz", brand: nil, state: nil).display_name)
+        .to eq("Arroz")
+      expect(build(:food, name: "Arroz", brand: nil, state: nil).display_name).not_to include("(")
     end
 
     it "combines the brand and the state when both are present" do
@@ -50,7 +63,7 @@ RSpec.describe Food, type: :model do
     end
 
     it "treats a blank brand (the form's optional field posts \"\", not nil) the same as no brand" do
-      expect(build(:food, name: "Arroz", brand: "", state: "as_sold").display_name)
+      expect(build(:food, name: "Arroz", brand: "", state: nil).display_name)
         .to eq("Arroz")
     end
 

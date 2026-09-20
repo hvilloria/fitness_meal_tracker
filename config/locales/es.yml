@@ -44,8 +44,6 @@ es:
     states:
       raw: "Crudo"
       cooked: "Cocido"
-      dry: "Seco"
-      as_sold: "Tal como se vende"
   meals:
     breakfast: "Desayuno"
     lunch: "Almuerzo"

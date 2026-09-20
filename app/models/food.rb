@@ -1,7 +1,9 @@
 class Food < ApplicationRecord
   # A food consumed in two states is two catalog records: raw and cooked
-  # chicken differ by roughly 30%.
-  STATES = %w[raw cooked dry as_sold].freeze
+  # chicken differ by roughly 30%. Anything else — a packaged good like
+  # cheese or protein powder — leaves state blank; raw/cooked is the only
+  # distinction that actually changes the macros.
+  STATES = %w[raw cooked].freeze
   MACRO_FIELDS = %i[kcal_per_100 protein_per_100 carbs_per_100 fat_per_100].freeze
 
   belongs_to :user
@@ -10,8 +12,10 @@ class Food < ApplicationRecord
 
   accepts_nested_attributes_for :servings, allow_destroy: true, reject_if: :all_blank
 
+  before_validation :nilify_blank_state
+
   validates :name, presence: true
-  validates :state, presence: true, inclusion: { in: STATES }
+  validates :state, inclusion: { in: STATES }, allow_nil: true
   validates(*MACRO_FIELDS, presence: true,
     numericality: { greater_than_or_equal_to: 0, less_than: DECIMAL_COLUMN_LIMIT })
   validates :fiber_per_100, :sodium_per_100, :sugar_per_100,
@@ -50,9 +54,9 @@ class Food < ApplicationRecord
 
   # Raw and cooked chicken differ by roughly 30%: rendering both as "Pollo"
   # would make them indistinguishable everywhere this is used, including
-  # food_name_snapshot, which freezes it into entry history forever. Only
-  # as_sold is left off — it is the unmarked default state (packaged food,
-  # eaten as-is) and naming it on every such food would be noise.
+  # food_name_snapshot, which freezes it into entry history forever. A blank
+  # state (packaged food, not applicable) is left off entirely rather than
+  # naming a state that doesn't apply.
   def display_name
     # compact_blank, not compact: the food form's brand field is optional
     # and posts "" rather than nil, and nothing normalises that to nil —
@@ -68,10 +72,17 @@ class Food < ApplicationRecord
 
   private
     def state_label
-      return nil if state.blank? || state == "as_sold"
+      return nil if state.blank?
 
       # food.states.* is capitalized for standalone use (a select option);
       # lower-cased here since it reads inline, parenthetical to the name.
       I18n.t("food.states.#{state}").downcase
+    end
+
+    # The form's select posts "" for the blank "No aplica" option; nothing
+    # else normalises that to nil, and "" would fail the inclusion check
+    # that allow_nil is meant to exempt it from.
+    def nilify_blank_state
+      self.state = nil if state.blank?
     end
 end

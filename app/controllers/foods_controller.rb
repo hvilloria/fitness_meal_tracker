@@ -8,7 +8,7 @@ class FoodsController < ApplicationController
   end
 
   def new
-    @food = current_user.foods.build(state: "as_sold")
+    @food = current_user.foods.build
     @food.servings.build
   end
 

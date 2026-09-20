@@ -3,7 +3,7 @@ FactoryBot.define do
     user
     name { "Port Salut light" }
     brand { "La Serenísima" }
-    state { "as_sold" }
+    state { nil }
     kcal_per_100 { 220 }
     protein_per_100 { 27 }
     carbs_per_100 { 0 }

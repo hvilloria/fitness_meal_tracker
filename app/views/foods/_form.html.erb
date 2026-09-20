@@ -17,7 +17,7 @@
 
   <div class="field">
     <%= form.label :state, "Estado" %>
-    <%= form.select :state, Food::STATES.map { |state| [ t("food.states.#{state}"), state ] } %>
+    <%= form.select :state, Food::STATES.map { |state| [ t("food.states.#{state}"), state ] }, include_blank: "No aplica" %>
   </div>
 
   <p class="muted">Valores de la etiqueta, por cada 100 g.</p>

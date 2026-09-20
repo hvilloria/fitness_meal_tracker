@@ -26,7 +26,7 @@ RSpec.describe "Foods", type: :request do
     expect {
       post foods_path, params: {
         food: {
-          name: "Port Salut light", brand: "La Serenísima", state: "as_sold",
+          name: "Port Salut light", brand: "La Serenísima",
           kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
           servings_attributes: { "0" => { label: "1 feta", grams: 30, is_default: "1" } }
         }
@@ -41,7 +41,7 @@ RSpec.describe "Foods", type: :request do
   it "re-renders the form when the food is invalid" do
     user
 
-    post foods_path, params: { food: { name: "", state: "as_sold" } }
+    post foods_path, params: { food: { name: "" } }
 
     expect(response).to have_http_status(:unprocessable_content)
   end
@@ -49,7 +49,7 @@ RSpec.describe "Foods", type: :request do
   it "shows a real Spanish validation message rather than a missing-translation fallback" do
     user
 
-    post foods_path, params: { food: { name: "", state: "as_sold" } }
+    post foods_path, params: { food: { name: "" } }
 
     expect(response.body).to include("no puede estar en blanco")
     expect(response.body).not_to include("Translation missing")
@@ -60,7 +60,7 @@ RSpec.describe "Foods", type: :request do
 
     post foods_path, params: {
       food: {
-        name: "Con porción inválida", state: "as_sold",
+        name: "Con porción inválida",
         kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
         servings_attributes: { "0" => { label: "", grams: 10 } }
       }
@@ -75,7 +75,7 @@ RSpec.describe "Foods", type: :request do
     expect {
       post foods_path, params: {
         food: {
-          name: "Fuera de rango", state: "as_sold",
+          name: "Fuera de rango",
           kcal_per_100: "1234567.89", protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12
         }
       }
@@ -90,7 +90,7 @@ RSpec.describe "Foods", type: :request do
 
     post foods_path, params: {
       food: {
-        name: "Coma decimal", state: "as_sold",
+        name: "Coma decimal",
         kcal_per_100: "220", protein_per_100: "12,5", carbs_per_100: 0, fat_per_100: 12
       }
     }
@@ -103,7 +103,7 @@ RSpec.describe "Foods", type: :request do
 
     post foods_path, params: {
       food: {
-        name: "Porción con coma", state: "as_sold",
+        name: "Porción con coma",
         kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
         servings_attributes: { "0" => { label: "1 feta", grams: "12,5", is_default: "1" } }
       }
@@ -120,7 +120,7 @@ RSpec.describe "Foods", type: :request do
     # client (not the rendered form) can send this shape.
     post foods_path, params: {
       food: {
-        name: "Porción con coma en array", state: "as_sold",
+        name: "Porción con coma en array",
         kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
         servings_attributes: [ { label: "1 feta", grams: "12,5", is_default: "1" } ]
       }
