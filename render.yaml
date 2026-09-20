@@ -1,0 +1,30 @@
+# Render Blueprint for the production deploy.
+#
+# Docker runtime against the "production" target of the repo's Dockerfile.
+# Thruster is dropped for this deploy (see bin/docker-entrypoint's comment
+# on why the CMD itself is left alone): dockerCommand below overrides the
+# Dockerfile's CMD at runtime to bind Puma directly to Render's injected
+# $PORT, since Thruster and Puma would otherwise both try to claim PORT.
+#
+# Database: Neon serverless Postgres, reached entirely through DATABASE_URL
+# (see config/database.yml). Render does not manage it; create the Neon
+# project separately and paste its connection string in when prompted.
+services:
+  - type: web
+    name: fitness-meal-tracker
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: "./bin/rails server -b 0.0.0.0 -p $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ALLOWED_EMAILS
+        sync: false

@@ -1,0 +1,17 @@
+<%= turbo_stream.append "logged_entries" do %>
+  <%= render @entry %>
+<% end %>
+
+<%# The form resets after a successful save rather than keep showing the
+    food/grams just logged — a stale preview invites logging it twice.
+    The replacement carries its own id="entry_form" wrapper so a later
+    save can replace it again. %>
+<%= turbo_stream.replace "entry_form" do %>
+  <div id="entry_form">
+    <% if @ad_hoc %>
+      <%= render "ad_hoc_form", entry: @fresh_entry %>
+    <% else %>
+      <%= render "form", entry: @fresh_entry, recent_foods: @recent_foods, other_foods: @other_foods, last_grams: @last_grams %>
+    <% end %>
+  </div>
+<% end %>

@@ -4,6 +4,8 @@ source "https://rubygems.org"
 gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
+# Sass for the stylesheet, compiled by the css service in compose.yaml
+gem "dartsass-rails"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
@@ -17,16 +19,21 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
+# Google sign-in. No passwords, so no Devise.
+gem "omniauth-google-oauth2"
+gem "omniauth-rails_csrf_protection"
+
+# Pin below 3.x: activesupport, faraday, and rubocop all depend on json with
+# no upper bound, and json 3.x's JSON.parse no longer accepts a positional
+# options hash, which breaks ActiveSupport::JSON.decode (used by the cookie
+# session store) on Rails 8.1.3.
+gem "json", "~> 2.9"
+
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
-
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-gem "solid_cache"
-gem "solid_queue"
-gem "solid_cable"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
@@ -44,6 +51,15 @@ group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
+  # Testing framework [https://rspec.info]
+  gem "rspec-rails"
+
+  # Fixtures replacement [https://github.com/thoughtbot/factory_bot_rails]
+  gem "factory_bot_rails"
+
+  # Fake data for factories and seeds [https://github.com/faker-ruby/faker]
+  gem "faker"
+
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem "bundler-audit", require: false
 
@@ -57,4 +73,10 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+end
+
+group :test do
+  # One-liner matchers for common Rails validations and associations
+  # [https://github.com/thoughtbot/shoulda-matchers]
+  gem "shoulda-matchers"
 end

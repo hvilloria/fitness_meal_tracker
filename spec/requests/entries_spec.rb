@@ -1,0 +1,324 @@
+require "rails_helper"
+
+RSpec.describe "Entries", type: :request do
+  let(:user) { sign_in_via_google(email: "a@example.com") }
+
+  before do
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com")
+    create(:goal, user: user, is_default: true)
+  end
+
+  it "logs a catalog food by weight" do
+    food = create(:food, user: user)
+
+    expect {
+      post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 40 } }
+    }.to change(Entry, :count).by(1)
+
+    entry = Entry.last
+    expect(entry.protein_g).to eq(10.8)
+    expect(entry.day_log.user).to eq(user)
+  end
+
+  it "resolves a serving into grams" do
+    food = create(:food, user: user)
+    serving = create(:serving, food: food, label: "1 feta", grams: 30)
+
+    post entries_path, params: { entry: { food_id: food.id, meal: "snack", serving_id: serving.id, quantity: 2 } }
+
+    entry = Entry.last
+    expect(entry.grams).to eq(60)
+    expect(entry.serving_label).to eq("2 × 1 feta")
+  end
+
+  it "keeps the serving label consistent with a fractional quantity" do
+    food = create(:food, user: user)
+    serving = create(:serving, food: food, label: "1 feta", grams: 30)
+
+    post entries_path,
+      params: { entry: { food_id: food.id, meal: "snack", serving_id: serving.id, quantity: "0,5" } }
+
+    entry = Entry.last
+    expect(entry.grams).to eq(15)
+    expect(entry.serving_label).to eq("0.5 × 1 feta")
+  end
+
+  it "logs an ad-hoc entry from typed macros" do
+    post entries_path, params: {
+      entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 100, carbs_g: 100, fat_g: 100 }
+    }
+
+    expect(Entry.last.kcal).to eq(1700)
+    expect(Entry.last.food_id).to be_nil
+  end
+
+  it "answers a Turbo Stream request without leaving the form" do
+    food = create(:food, user: user)
+
+    post entries_path,
+      params: { entry: { food_id: food.id, meal: "lunch", grams: 40 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+    expect(response.body).to include("turbo-stream")
+  end
+
+  it "refuses a food belonging to someone else" do
+    other_food = create(:food)
+
+    # config.action_dispatch.show_exceptions = :rescuable in test env means
+    # ActiveRecord::RecordNotFound is rescued into a 404 response rather than
+    # propagating to the spec — see the same note in foods_spec.rb.
+    post entries_path, params: { entry: { food_id: other_food.id, meal: "lunch", grams: 40 } }
+
+    expect(response).to have_http_status(:not_found)
+  end
+
+  it "deletes an entry" do
+    food = create(:food, user: user)
+    post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 40 } }
+    entry = Entry.last
+
+    expect { delete entry_path(entry) }.to change(Entry, :count).by(-1)
+  end
+
+  it "shows recently logged foods on the form" do
+    food = create(:food, user: user, name: "Pechuga de pollo")
+    post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 190 } }
+
+    get new_entry_path
+
+    expect(response.body).to include("Pechuga de pollo")
+  end
+
+  describe "food select membership" do
+    it "offers a food that has never been logged, not just recent ones" do
+      food = create(:food, user: user, name: "Pechuga de pollo")
+
+      get new_entry_path
+
+      expect(response.body).to include(food.name)
+    end
+
+    it "still offers a newly created food once another food has already been logged" do
+      logged = create(:food, user: user, name: "Pollo ya usado")
+      post entries_path, params: { entry: { food_id: logged.id, meal: "lunch", grams: 100 } }
+
+      new_food = create(:food, user: user, name: "Alimento nuevo")
+
+      get new_entry_path
+
+      expect(response.body).to include(new_food.name)
+    end
+
+    it "orders recently logged foods before the rest of the catalog" do
+      recent = create(:food, user: user, name: "Zapallo")
+      post entries_path, params: { entry: { food_id: recent.id, meal: "lunch", grams: 100 } }
+      other = create(:food, user: user, name: "Arroz")
+
+      get new_entry_path
+
+      body = response.body
+      expect(body.index(recent.name)).to be < body.index(other.name)
+    end
+
+    it "keeps a food reachable once it drops out of Food.recent_for's 20-item cap" do
+      dropped = create(:food, user: user, name: "Cayó del top 20")
+      travel_to(1.hour.ago) { post entries_path, params: { entry: { food_id: dropped.id, meal: "lunch", grams: 10 } } }
+
+      20.times do |i|
+        food = create(:food, user: user, name: "Reciente #{i}")
+        travel_to(i.minutes.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 10 } } }
+      end
+
+      expect(Food.recent_for(user)).not_to include(dropped)
+
+      get new_entry_path
+
+      expect(response.body).to include(dropped.name)
+    end
+
+    it "excludes an archived, never-logged food from the full-catalog group" do
+      archived = create(:food, user: user, name: "Archivado sin usar", archived_at: Time.current)
+
+      get new_entry_path
+
+      expect(response.body).not_to include(archived.name)
+    end
+
+    it "excludes an archived, previously-logged food from Food.recent_for" do
+      archived = create(:food, user: user, name: "Archivado reciente")
+      post entries_path, params: { entry: { food_id: archived.id, meal: "lunch", grams: 10 } }
+      archived.update!(archived_at: Time.current)
+
+      expect(Food.recent_for(user)).not_to include(archived)
+    end
+  end
+
+  it "carries the last weight used onto the food option" do
+    food = create(:food, user: user, name: "Pechuga de pollo")
+    post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 190 } }
+
+    get new_entry_path
+
+    expect(response.body).to include("data-last-grams=\"190.0\"")
+  end
+
+  it "omits the last-weight data attribute for a food that has never been logged" do
+    food = create(:food, user: user, name: "Nunca registrado")
+
+    get new_entry_path
+
+    tag = response.body[/<option[^>]*value="#{food.id}"[^>]*>/]
+    expect(tag).to include("data-kcal=")
+    expect(tag).not_to include("last-grams")
+  end
+
+  it "accepts a comma as the decimal separator for grams" do
+    food = create(:food, user: user)
+
+    post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: "12,5" } }
+
+    expect(Entry.last.grams).to eq(12.5)
+  end
+
+  it "accepts a comma as the decimal separator for typed macros" do
+    post entries_path, params: {
+      entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: "12,5", carbs_g: "10", fat_g: "5" }
+    }
+
+    expect(Entry.last.protein_g).to eq(12.5)
+  end
+
+  it "does not raise when meal arrives as an Array on the new form" do
+    get new_entry_path, params: { meal: [ "lunch", "dinner" ] }
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "does not raise when meal arrives as a Hash on the new form" do
+    get new_entry_path, params: { meal: { "foo" => "bar" } }
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  describe "ad-hoc entries" do
+    it "renders the ad-hoc form, not the catalog select, for ?ad_hoc=1" do
+      get new_entry_path, params: { ad_hoc: "1" }
+
+      expect(response.body).to include('name="entry[food_name_snapshot]"')
+      expect(response.body).not_to include('name="entry[food_id]"')
+    end
+
+    it "renders the catalog form, not the ad-hoc fields, without ?ad_hoc" do
+      get new_entry_path
+
+      expect(response.body).to include('name="entry[food_id]"')
+      expect(response.body).not_to include('name="entry[food_name_snapshot]"')
+    end
+
+    it "creates an entry with no food_id and calories derived as 4p + 4c + 9f" do
+      expect {
+        post entries_path, params: {
+          entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 100, carbs_g: 100, fat_g: 100 }
+        }
+      }.to change(Entry, :count).by(1)
+
+      entry = Entry.last
+      expect(entry.food_id).to be_nil
+      expect(entry.protein_g).to eq(100)
+      expect(entry.carbs_g).to eq(100)
+      expect(entry.fat_g).to eq(100)
+      expect(entry.kcal).to eq(1700)
+    end
+
+    it "accepts a comma as the decimal separator" do
+      post entries_path, params: {
+        entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: "12,5", carbs_g: "10", fat_g: "5" }
+      }
+
+      expect(Entry.last.protein_g).to eq(12.5)
+    end
+
+    it "does not 500 on a hostile ad_hoc query param shape" do
+      get new_entry_path, params: { ad_hoc: [ "x" ] }
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "rejects an entry with no name and re-renders the form" do
+      expect {
+        post entries_path, params: { entry: { meal: "dinner", protein_g: 100, carbs_g: 100, fat_g: 100 } }
+      }.not_to change(Entry, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('name="entry[food_name_snapshot]"')
+    end
+  end
+
+  describe "decimal(8, 2) overflow" do
+    it "rejects an ad-hoc macro that is out of range instead of raising on save" do
+      expect {
+        post entries_path, params: {
+          entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: "9999999", carbs_g: 10, fat_g: 10 }
+        }
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Entry.count).to eq(0)
+    end
+
+    it "rejects a catalog weight whose derived kcal would overflow, even though grams itself is in range" do
+      food = create(:food, user: user, kcal_per_100: 900, protein_per_100: 0, carbs_per_100: 0, fat_per_100: 100)
+
+      expect {
+        post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: "999999" } }
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Entry.count).to eq(0)
+    end
+  end
+
+  it "orders today's entries chronologically, not by the per-meal position that collides across meals" do
+    food = create(:food, user: user)
+
+    travel_to(2.hours.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "breakfast", grams: 11 } } }
+    travel_to(1.hour.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "breakfast", grams: 22 } } }
+    travel_to(30.minutes.ago) { post entries_path, params: { entry: { food_id: food.id, meal: "lunch", grams: 33 } } }
+
+    get new_entry_path
+
+    body = response.body
+    positions = [ body.index("11 g"), body.index("22 g"), body.index("33 g") ]
+
+    expect(positions).to all(be_present)
+    expect(positions).to eq(positions.sort)
+  end
+
+  it "does not 500 on an invalid submission accepted only as text/vnd.turbo-stream.html" do
+    post entries_path,
+      params: { entry: { meal: "dinner", protein_g: 100, carbs_g: 100, fat_g: 100 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "resets the form after a successful Turbo save instead of keeping the logged item" do
+    food = create(:food, user: user, name: "Pechuga de pollo")
+
+    post entries_path,
+      params: { entry: { food_id: food.id, meal: "lunch", grams: 190 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include('id="entry_form"')
+    expect(response.body).not_to include('value="190"')
+  end
+
+  it "does not 500 when the entry param arrives as a bare scalar" do
+    post entries_path, params: { entry: "boom" }
+
+    expect(response).to have_http_status(:bad_request)
+  end
+end

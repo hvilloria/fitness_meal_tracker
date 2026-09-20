@@ -1,8 +1,22 @@
 #!/bin/bash -e
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
-fi
+# If running the rails server then create or migrate existing database.
+#
+# The default Docker CMD boots via Thruster (./bin/thrust ./bin/rails
+# server), but Render's start command binds Puma directly and carries extra
+# flags (e.g. ./bin/rails server -b 0.0.0.0 -p $PORT). Comparing only the
+# last two args, as the original check did, breaks under either of those:
+# it misses the flags case entirely. Instead, scan all args for "./bin/rails"
+# immediately followed by "server" as the very next argument, wherever that
+# pair falls in the command. Requiring "server" to directly follow
+# "./bin/rails" (rather than merely appearing later) keeps this from firing
+# for `./bin/rails console` or a one-off `./bin/rails runner ...` task.
+args=("$@")
+for ((i = 0; i < ${#args[@]} - 1; i++)); do
+  if [ "${args[i]}" == "./bin/rails" ] && [ "${args[i+1]}" == "server" ]; then
+    ./bin/rails db:prepare
+    break
+  fi
+done
 
 exec "${@}"

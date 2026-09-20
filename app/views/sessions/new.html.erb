@@ -1,0 +1,14 @@
+<% content_for :title, "Entrar" %>
+
+<main class="signin">
+  <h1>Macros</h1>
+  <%# data-turbo: false forces a full browser navigation. Turbo would submit
+      this form with fetch(), which then follows the redirect to
+      accounts.google.com and is blocked by CORS — OAuth needs the browser
+      itself to leave the page. %>
+  <%# The opt-out must go on the FORM via form:, not in html_options — those
+      land on the <button>, which Turbo does not check here. %>
+  <%= button_to "Entrar con Google", auth_request_path(provider: "google_oauth2"),
+        class: "button button--primary",
+        form: { data: { turbo: false } } %>
+</main>

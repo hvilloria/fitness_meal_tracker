@@ -1,0 +1,58 @@
+es:
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " y "
+      last_word_connector: " y "
+  errors:
+    messages:
+      blank: "no puede estar en blanco"
+      not_a_number: "no es un número"
+      greater_than: "debe ser mayor que %{count}"
+      greater_than_or_equal_to: "debe ser mayor o igual que %{count}"
+      less_than: "debe ser menor que %{count}"
+      taken: "ya está en uso"
+      inclusion: "no está incluido en la lista"
+  activerecord:
+    attributes:
+      food:
+        name: "Nombre"
+        brand: "Marca"
+        state: "Estado"
+        kcal_per_100: "Calorías"
+        protein_per_100: "Proteína"
+        carbs_per_100: "Carbohidratos"
+        fat_per_100: "Grasa"
+        fiber_per_100: "Fibra"
+        sodium_per_100: "Sodio"
+        sugar_per_100: "Azúcar"
+      food/servings:
+        label: "Etiqueta"
+        grams: "Gramos"
+      goal:
+        protein_g: "Proteína"
+        carbs_g: "Carbohidratos"
+        fat_g: "Grasa"
+      entry:
+        meal: "Comida"
+        grams: "Peso"
+        food_name_snapshot: "Nombre"
+        protein_g: "Proteína"
+        carbs_g: "Carbohidratos"
+        fat_g: "Grasa"
+  food:
+    states:
+      raw: "Crudo"
+      cooked: "Cocido"
+      dry: "Seco"
+      as_sold: "Tal como se vende"
+  meals:
+    breakfast: "Desayuno"
+    lunch: "Almuerzo"
+    snack: "Merienda"
+    dinner: "Cena"
+  date:
+    formats:
+      long: "%A %-d de %B de %Y"
+    day_names: [domingo, lunes, martes, miércoles, jueves, viernes, sábado]
+    month_names: [~, enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre]

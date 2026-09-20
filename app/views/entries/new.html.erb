@@ -1,0 +1,20 @@
+<% content_for :title, "Agregar comida" %>
+<h1>Agregar</h1>
+
+<div id="entry_form">
+  <% if @ad_hoc %>
+    <%= render "ad_hoc_form", entry: @entry %>
+  <% else %>
+    <%= render "form", entry: @entry, recent_foods: @recent_foods, other_foods: @other_foods, last_grams: @last_grams %>
+  <% end %>
+</div>
+
+<h2>Registrado hoy</h2>
+<div id="logged_entries" class="stack">
+  <%# Ordered chronologically, not by the association's default (:position,
+      :logged_at) — position numbers per meal, so a reload of
+      breakfast-1, breakfast-2, lunch-1 would otherwise show
+      breakfast-1, lunch-1, breakfast-2, diverging from how Turbo appended
+      them as they were logged. %>
+  <%= render @day_log.entries.reorder(:logged_at) %>
+</div>

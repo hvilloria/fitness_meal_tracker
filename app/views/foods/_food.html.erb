@@ -1,0 +1,15 @@
+<div class="card">
+  <div class="row" style="justify-content: space-between;">
+    <div>
+      <strong><%= food.display_name %></strong>
+      <div class="muted"><%= t("food.states.#{food.state}") %> · por 100 g</div>
+    </div>
+    <%= link_to "Editar", edit_food_path(food) %>
+  </div>
+  <div class="muted">
+    <%= number_with_precision(food.kcal_per_100, precision: 0) %> kcal ·
+    P <%= number_with_precision(food.protein_per_100, precision: 1) %> ·
+    C <%= number_with_precision(food.carbs_per_100, precision: 1) %> ·
+    G <%= number_with_precision(food.fat_per_100, precision: 1) %>
+  </div>
+</div>
