@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   resource :goal, only: %i[edit update]
   resources :foods
   resources :entries, only: %i[new create destroy]
+  get "progress", to: "progress#show"
 
   root "days#show"
 end

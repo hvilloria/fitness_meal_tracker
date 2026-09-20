@@ -7,6 +7,7 @@ module ApplicationHelper
     "days" => :today,
     "entries" => :today,
     "foods" => :foods,
+    "progress" => :progress,
     "goals" => :goal
   }.freeze
 

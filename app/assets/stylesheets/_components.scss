@@ -385,6 +385,56 @@ input[type="submit"].button {
   color: var(--color-danger);
 }
 
+// --------------------------------------------------------- week day bars
+
+.weekbars {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.weekbar {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.weekbar__track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 1.5rem;
+  height: 4rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-raised);
+  overflow: hidden;
+}
+
+.weekbar__fill {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+}
+
+// A day that went over its own goal reads differently at a glance from one
+// that simply filled the bar — that's the whole point of these bars.
+.weekbar__fill--over {
+  background: var(--color-danger);
+}
+
+// No fill at all for an unlogged day: an empty track, not a zero bar, so it
+// never reads as "the user ate nothing that day".
+.weekbar--unlogged .weekbar__track {
+  opacity: 0.4;
+}
+
+.weekbar__label {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
 // ---------------------------------------------------- goal / ad-hoc total
 
 .goal-total {

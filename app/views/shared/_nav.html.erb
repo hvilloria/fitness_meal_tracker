@@ -1,7 +1,7 @@
-<%# The bottom bar is the whole navigation: three daily destinations, each an
-    icon plus a label. "Salir" is not a daily action and lives at the foot of
-    the Meta screen instead. Icons are inline SVG on purpose — this app loads
-    no external assets and must keep it that way. %>
+<%# The bottom bar is the whole navigation: four destinations, each an icon
+    plus a label. "Salir" is not a daily action and lives at the foot of the
+    Meta screen instead. Icons are inline SVG on purpose — this app loads no
+    external assets and must keep it that way. %>
 <% section = nav_section %>
 
 <nav class="tabbar" aria-label="Navegación principal">
@@ -26,6 +26,16 @@
       <path d="M4 6h.01M4 12h.01M4 18h.01" />
     </svg>
     <span>Alimentos</span>
+  <% end %>
+
+  <%= link_to progress_path,
+        class: class_names("tabbar__tab", "tabbar__tab--active" => section == :progress),
+        aria: { current: ("page" if section == :progress) } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="M4 19V11M12 19V5M20 19v-7" />
+    </svg>
+    <span>Progreso</span>
   <% end %>
 
   <%= link_to edit_goal_path,
