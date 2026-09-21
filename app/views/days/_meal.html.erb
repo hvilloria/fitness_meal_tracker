@@ -1,12 +1,12 @@
 <%# locals: meal, entries %>
 <section class="stack">
-  <div class="row" style="justify-content: space-between;">
+  <div class="section__head">
     <h2><%= t("meals.#{meal}") %></h2>
     <%= link_to "Agregar", new_entry_path(meal: meal), class: "button" %>
   </div>
 
   <% if entries.empty? %>
-    <p class="muted">Nada registrado.</p>
+    <p class="empty">Nada registrado.</p>
   <% else %>
     <%= render partial: "entries/entry", collection: entries %>
   <% end %>

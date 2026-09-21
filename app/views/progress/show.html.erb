@@ -1,0 +1,89 @@
+<% content_for :title, "Progreso" %>
+
+<%# The week is the unit of outcome, so it leads with a budget: all seven
+    days, each against its OWN goal (an unlogged day falls back to the
+    user's current default goal — see ProgressSummary). Consumed still only
+    counts logged days, so the "Registrados X de 7 días" line is the honesty
+    signal: the figure is only exact once everything is logged. %>
+<section class="card stack" aria-label="Semana">
+  <h2>Semana</h2>
+
+  <% if @summary.week_empty? %>
+    <p class="empty">Todavía no registraste ningún día esta semana.</p>
+  <% else %>
+    <p class="between tnum">
+      <span>Semana</span>
+      <span>
+        <%= number_with_precision(@summary.week_consumed, precision: 0, delimiter: ".") %>
+        / <%= number_with_precision(@summary.week_budget, precision: 0, delimiter: ".") %> kcal
+      </span>
+    </p>
+    <%# Same treatment as the day screen's hero number: a negative balance
+        shows its absolute value under "excedidas" rather than a bare
+        negative under "restantes" — see DaysHelper#remaining_unit_label. %>
+    <p class="tnum">
+      <span class="<%= class_names("negative" => @summary.week_remaining.negative?) %>">
+        <%= number_with_precision(remaining_amount(@summary.week_remaining), precision: 0, delimiter: ".") %>
+        <%= remaining_unit_label(@summary.week_remaining) %>
+      </span>
+      para <%= @summary.week_upcoming_label %>
+    </p>
+    <p class="muted field__hint">
+      Registrados <%= @summary.week_logged_count %> de <%= @summary.week_total_days %> días.
+    </p>
+
+    <div class="weekbars" role="img" aria-label="Calorías por día de la semana">
+      <% @summary.week_days.each_with_index do |day, index| %>
+        <%= render "week_day_bar", day: day, label: ProgressSummary::DAY_ABBREVIATIONS[index] %>
+      <% end %>
+    </div>
+
+    <%# Calories say how much; these macro totals say what to eat with the
+        rest of the week's budget — styled like the day screen's bars. %>
+    <div class="macros" aria-label="Macros de la semana">
+      <%= render "days/macro_bar", label: "Proteína", current: @summary.week_protein_consumed,
+            goal: @summary.week_protein_goal, color_var: "--color-protein" %>
+      <%= render "days/macro_bar", label: "Carbos", current: @summary.week_carbs_consumed,
+            goal: @summary.week_carbs_goal, color_var: "--color-carbs" %>
+      <%= render "days/macro_bar", label: "Grasa", current: @summary.week_fat_consumed,
+            goal: @summary.week_fat_goal, color_var: "--color-fat" %>
+    </div>
+  <% end %>
+</section>
+
+<%# A monthly balance isn't actionable — knowing you're 8.000 kcal over
+    doesn't tell you what to eat today — so the month reports averages
+    instead of a running total, again over logged days only. %>
+<section class="card stack" aria-label="Mes">
+  <h2>Mes</h2>
+
+  <% if @summary.month_empty? %>
+    <p class="empty">Todavía no registraste ningún día este mes.</p>
+  <% else %>
+    <div class="between tnum">
+      <span>Promedio diario</span>
+      <span>
+        <%= number_with_precision(@summary.month_average_kcal, precision: 0, delimiter: ".") %> kcal
+        <span class="muted">· meta <%= number_with_precision(@summary.month_average_goal_kcal, precision: 0, delimiter: ".") %></span>
+      </span>
+    </div>
+    <div class="between tnum">
+      <span>Proteína</span>
+      <span>
+        <%= number_with_precision(@summary.month_average_protein_g, precision: 0) %> g
+        <span class="muted">· meta <%= number_with_precision(@summary.month_average_goal_protein_g, precision: 0) %></span>
+      </span>
+    </div>
+    <div class="between tnum">
+      <span>Días registrados</span>
+      <span><%= @summary.month_logged_count %> de <%= @summary.month_elapsed_days %></span>
+    </div>
+    <div class="between tnum">
+      <span>Días en meta</span>
+      <span><%= @summary.month_on_target_count %></span>
+    </div>
+    <p class="muted field__hint">
+      "En meta" es un día dentro del ±<%= (ProgressSummary::ON_TARGET_TOLERANCE * 100).to_i %>% de la meta de ese día.
+    </p>
+  <% end %>
+</section>

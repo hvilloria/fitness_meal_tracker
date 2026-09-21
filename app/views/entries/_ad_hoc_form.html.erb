@@ -33,14 +33,17 @@
           data: { macro_calculator_target: "fat" } %>
   </div>
 
+  <%# No food, so no unit to show — an ad-hoc entry has nothing to read
+      "g" or "ml" from (see Entry#unit_abbreviation's neutral "g" fallback,
+      used only for a saved entry, not for this input's own label). %>
   <div class="field">
-    <%= form.label :grams, "Peso (g) — opcional" %>
+    <%= form.label :grams, "Peso — opcional" %>
     <%= form.number_field :grams, step: :any, inputmode: "decimal" %>
   </div>
 
   <div class="card goal-total">
     <span class="goal-total__value" data-macro-calculator-target="kcal">0</span>
-    <span class="muted">kcal</span>
+    <span class="goal-total__unit">kcal</span>
   </div>
 
   <%= form.submit "Agregar", class: "button button--primary" %>

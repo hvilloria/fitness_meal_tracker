@@ -18,19 +18,36 @@
           data: { entry_preview_target: "food", action: "change->entry-preview#foodChanged" } %>
   </div>
 
-  <div class="field">
-    <%= form.label :grams, "Peso (g)" %>
-    <%= form.number_field :grams, step: :any, inputmode: "decimal",
-          data: { entry_preview_target: "grams" } %>
+  <%# The amount is a quantity plus the unit it is counted in. The units on
+      offer belong to the selected food (one portion of it, its own g/ml,
+      and that unit ×1000), so the list is rebuilt in the browser whenever
+      the food changes — see entry_preview_controller.js#foodChanged. Which
+      one starts selected is decided in one place, on the server, and rides
+      onto the food's option as data-default-unit. %>
+  <div class="amount">
+    <div class="field">
+      <%= form.label :quantity, "Cantidad" %>
+      <%= form.number_field :quantity, step: :any, inputmode: "decimal",
+            data: { entry_preview_target: "quantity" } %>
+    </div>
+
+    <div class="field">
+      <%= form.label :unit, "Unidad" %>
+      <%= form.select :unit, entry_unit_options(entry.food),
+            { selected: entry.unit.presence || default_entry_unit(entry.food) },
+            data: { entry_preview_target: "unit" } %>
+    </div>
   </div>
 
-  <div class="card">
-    <strong><span data-entry-preview-target="kcal">0</span> kcal</strong>
-    <div class="muted">
-      P <span data-entry-preview-target="protein">0</span> ·
-      C <span data-entry-preview-target="carbs">0</span> ·
-      G <span data-entry-preview-target="fat">0</span>
-    </div>
+  <div class="card preview">
+    <p class="preview__value tnum">
+      <span data-entry-preview-target="kcal">0</span> kcal
+    </p>
+    <ul class="chips">
+      <li class="chip chip--protein"><span class="chip__key">P</span><span data-entry-preview-target="protein">0</span></li>
+      <li class="chip chip--carbs"><span class="chip__key">C</span><span data-entry-preview-target="carbs">0</span></li>
+      <li class="chip chip--fat"><span class="chip__key">G</span><span data-entry-preview-target="fat">0</span></li>
+    </ul>
   </div>
 
   <%= form.submit "Agregar", class: "button button--primary" %>

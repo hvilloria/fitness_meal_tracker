@@ -15,6 +15,12 @@ args=("$@")
 for ((i = 0; i < ${#args[@]} - 1; i++)); do
   if [ "${args[i]}" == "./bin/rails" ] && [ "${args[i+1]}" == "server" ]; then
     ./bin/rails db:prepare
+    # Render's free plan gives no shell access, so there is no way to run
+    # db:seed by hand against production. Seeding here, on every boot, is
+    # the only way it ever runs there. db/seeds.rb is idempotent (keyed on
+    # user + food name), so re-running it on every deploy and restart is
+    # cheap and safe.
+    ./bin/rails db:seed
     break
   fi
 done

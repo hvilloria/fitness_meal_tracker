@@ -140,15 +140,24 @@ RSpec.describe "Days", type: :request do
       expect(sum_queries).to eq(2)
     end
 
-    it "shows a negative remainder rather than clamping at zero" do
-      create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69)
+    it "shows the real overage under 'kcal excedidas' rather than clamping at zero" do
+      create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69) # kcal 2497
       food = create(:food, user: user, kcal_per_100: 1000, protein_per_100: 0, carbs_per_100: 0, fat_per_100: 0)
-      post entries_path, params: { entry: { food_id: food.id, meal: "dinner", grams: 1000 } }
+      post entries_path, params: { entry: { food_id: food.id, meal: "dinner", grams: 1000 } } # 10000 kcal
 
       get root_path
 
-      expect(response.body).to include("-")
+      expect(response.body).to include("7503") # |2497 - 10000|, never clamped at zero
+      expect(response.body).to include("kcal excedidas")
       expect(response.body).to include("negative")
+    end
+
+    it "still says 'kcal restantes' under the goal" do
+      create(:goal, user: @user, is_default: true, protein_g: 156, carbs_g: 313, fat_g: 69)
+
+      get root_path
+
+      expect(response.body).to include("kcal restantes")
     end
   end
 end

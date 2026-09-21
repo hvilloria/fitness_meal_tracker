@@ -2,10 +2,11 @@
 <html>
   <head>
     <title><%= content_for(:title) || "Fitness Meal Tracker" %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Fitness Meal Tracker">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#12141a">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -23,14 +24,17 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <% if current_user %>
-      <%= render "shared/nav" %>
-    <% end %>
-
+  <%# viewport-fit=cover above is what makes env(safe-area-inset-bottom)
+      resolve to anything but zero on a notched iPhone; the tab bar and the
+      container's bottom padding both depend on it. %>
+  <body class="<%= "has-tabbar" if current_user %>">
     <div class="container stack">
       <%= render "shared/flash" %>
       <%= yield %>
     </div>
+
+    <% if current_user %>
+      <%= render "shared/nav" %>
+    <% end %>
   </body>
 </html>

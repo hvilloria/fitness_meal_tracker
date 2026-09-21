@@ -166,6 +166,35 @@ RSpec.describe Entry, type: :model do
     end
   end
 
+  describe "#unit_abbreviation" do
+    it "reads the food's unit for a catalog entry" do
+      liquid = create(:food, :milliliters, user: user)
+      entry = Entry.create!(day_log: day_log, food: liquid, meal: "snack", grams: 330)
+
+      expect(entry.unit_abbreviation).to eq("ml")
+    end
+
+    it "defaults to grams for a catalog entry whose food uses grams" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+
+      expect(entry.unit_abbreviation).to eq("g")
+    end
+
+    it "falls back to a neutral 'g' for an ad-hoc entry, which has no food" do
+      entry = build(:entry, :ad_hoc, day_log: day_log)
+
+      expect(entry.unit_abbreviation).to eq("g")
+    end
+
+    it "falls back to 'g' for an orphaned entry whose food was deleted" do
+      entry = Entry.create!(day_log: day_log, food: food, meal: "snack", grams: 40)
+      food.destroy
+      entry.reload
+
+      expect(entry.unit_abbreviation).to eq("g")
+    end
+  end
+
   describe "validation of the meal" do
     it "rejects a meal outside the four" do
       # Rails 8.1's enum (with validate: true) no longer raises ArgumentError

@@ -18,4 +18,18 @@ RSpec.describe DaysHelper, type: :helper do
       expect(helper.ring_dash_array(50, 0, 100)).to eq("0.0 100")
     end
   end
+
+  describe "#bar_percentage" do
+    it "fills half the bar at half the goal" do
+      expect(helper.bar_percentage(50, 100)).to eq(50.0)
+    end
+
+    it "caps the bar at full when the goal is exceeded" do
+      expect(helper.bar_percentage(150, 100)).to eq(100.0)
+    end
+
+    it "fills nothing when the goal is zero rather than dividing by it" do
+      expect(helper.bar_percentage(50, 0)).to eq(0.0)
+    end
+  end
 end

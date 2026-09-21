@@ -21,27 +21,162 @@ RSpec.describe "Entries", type: :request do
     expect(entry.day_log.user).to eq(user)
   end
 
-  it "resolves a serving into grams" do
-    food = create(:food, user: user)
-    serving = create(:serving, food: food, label: "1 feta", grams: 30)
+  describe "counting an amount in unidades" do
+    # 10 P / 5 C / 10 G over a 30 g portion, as the food form stores them.
+    let(:food) do
+      create(:food, user: user, name: "Queso", portion_amount: 30,
+        kcal_per_100: 500, protein_per_100: 33.33, carbs_per_100: 16.67, fat_per_100: 33.33)
+    end
 
-    post entries_path, params: { entry: { food_id: food.id, meal: "snack", serving_id: serving.id, quantity: 2 } }
+    it "multiplies the portion and records what was counted" do
+      post entries_path, params: {
+        entry: { food_id: food.id, meal: "snack", quantity: "2", unit: "portion" }
+      }
 
-    entry = Entry.last
-    expect(entry.grams).to eq(60)
-    expect(entry.serving_label).to eq("2 × 1 feta")
+      entry = Entry.last
+      expect(entry.grams).to eq(60)
+      expect(entry.protein_g).to eq(20)
+      expect(entry.carbs_g).to eq(10)
+      expect(entry.fat_g).to eq(20)
+      expect(entry.serving_label).to eq("2 unidades")
+    end
+
+    it "labels a single unit in the singular" do
+      post entries_path, params: {
+        entry: { food_id: food.id, meal: "snack", quantity: "1", unit: "portion" }
+      }
+
+      entry = Entry.last
+      expect(entry.grams).to eq(30)
+      expect(entry.serving_label).to eq("1 unidad")
+    end
+
+    it "keeps the label consistent with a fractional quantity" do
+      post entries_path,
+        params: { entry: { food_id: food.id, meal: "snack", quantity: "0,5", unit: "portion" } }
+
+      entry = Entry.last
+      expect(entry.grams).to eq(15)
+      expect(entry.serving_label).to eq("0.5 unidades")
+    end
+
+    it "counts one portion when no quantity is typed at all" do
+      post entries_path, params: { entry: { food_id: food.id, meal: "snack", unit: "portion" } }
+
+      entry = Entry.last
+      expect(entry.grams).to eq(30)
+      expect(entry.serving_label).to eq("1 unidad")
+    end
   end
 
-  it "keeps the serving label consistent with a fractional quantity" do
-    food = create(:food, user: user)
-    serving = create(:serving, food: food, label: "1 feta", grams: 30)
+  describe "the amount's unit selector" do
+    it "stores the base unit as typed, with no label" do
+      food = create(:food, user: user)
 
-    post entries_path,
-      params: { entry: { food_id: food.id, meal: "snack", serving_id: serving.id, quantity: "0,5" } }
+      post entries_path, params: { entry: { food_id: food.id, meal: "lunch", quantity: "47", unit: "base" } }
 
-    entry = Entry.last
-    expect(entry.grams).to eq(15)
-    expect(entry.serving_label).to eq("0.5 × 1 feta")
+      entry = Entry.last
+      expect(entry.grams).to eq(47)
+      expect(entry.serving_label).to be_blank
+    end
+
+    it "logs a weight in the base unit of a per-100 food exactly as before" do
+      food = create(:food, user: user)
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "lunch", quantity: "200", unit: "base" } }
+
+      entry = Entry.last
+      expect(entry.grams).to eq(200)
+      expect(entry.protein_g).to eq(54)
+      expect(entry.serving_label).to be_blank
+    end
+
+    it "multiplies the x1000 unit by a thousand and labels it in kg" do
+      food = create(:food, user: user)
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "lunch", quantity: "0,5", unit: "x1000" } }
+
+      entry = Entry.last
+      expect(entry.grams).to eq(500)
+      expect(entry.serving_label).to eq("0.5 kg")
+    end
+
+    it "labels the x1000 unit of a liquid in litres" do
+      liquid = create(:food, :milliliters, user: user)
+
+      post entries_path, params: { entry: { food_id: liquid.id, meal: "snack", quantity: "1.5", unit: "x1000" } }
+
+      expect(Entry.last.serving_label).to eq("1.5 l")
+    end
+
+    it "falls back to the base unit for a unit value it does not know" do
+      food = create(:food, user: user)
+
+      post entries_path, params: {
+        entry: { food_id: food.id, meal: "snack", quantity: "2", unit: "serving:whatever" }
+      }
+
+      entry = Entry.last
+      expect(entry.grams).to eq(2)
+      expect(entry.serving_label).to be_blank
+    end
+
+    it "carries each food's portion and default unit onto its option" do
+      food = create(:food, user: user, portion_amount: 30)
+      per_100 = create(:food, user: user, name: "Por 100", portion_amount: 100)
+
+      get new_entry_path
+
+      option = response.body[/<option[^>]*value="#{food.id}"[^>]*>/]
+      expect(option).to include("data-multiple-unit=\"kg\"")
+      expect(option).to include("data-portion=\"30.0\"")
+      expect(option).to include('data-default-unit="portion"')
+      expect(response.body[/<option[^>]*value="#{per_100.id}"[^>]*>/])
+        .to include('data-default-unit="base"')
+      expect(response.body).to include('name="entry[quantity]"')
+      expect(response.body).to include('name="entry[unit]"')
+    end
+
+    # A food only reaches the server-rendered unit select when the form comes
+    # back with one already chosen — an invalid submission. On a fresh form
+    # nothing is selected yet, and the browser builds the list from the
+    # option's data attributes (see entry_preview_controller.js#rebuildUnits).
+    it "offers unidad, the base unit and the x1000 unit once a food is chosen" do
+      food = create(:food, user: user, portion_amount: 30)
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "snack" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('data-grams="30.0" selected="selected" value="portion">unidad</option>')
+      expect(response.body).to include('data-grams="1" value="base">g</option>')
+      expect(response.body).to include('data-grams="1000" value="x1000">kg</option>')
+    end
+
+    it "starts on unidad for a food that declares a portion of its own" do
+      food = create(:food, user: user, portion_amount: 30)
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "snack" } }
+
+      expect(response.body).to include('selected="selected" value="portion">unidad</option>')
+    end
+
+    it "starts on the base unit for a food whose figures are per 100" do
+      food = create(:food, user: user, portion_amount: 100)
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "snack" } }
+
+      expect(response.body).to include('selected="selected" value="base">g</option>')
+      expect(response.body).to include('data-grams="100.0" value="portion">unidad</option>')
+    end
+
+    it "carries the millilitre food's x1000 unit onto its option" do
+      liquid = create(:food, :milliliters, user: user)
+      post entries_path, params: { entry: { food_id: liquid.id, meal: "snack", grams: 330 } }
+
+      get new_entry_path
+
+      expect(response.body[/<option[^>]*value="#{liquid.id}"[^>]*>/]).to include("data-multiple-unit=\"l\"")
+    end
   end
 
   it "logs an ad-hoc entry from typed macros" do
@@ -203,6 +338,55 @@ RSpec.describe "Entries", type: :request do
     expect(response).to have_http_status(:ok)
   end
 
+  describe "units (grams vs millilitres)" do
+    it "shows the millilitres unit for a liquid food's option and entry row" do
+      liquid = create(:food, :milliliters, user: user, name: "Coca-Cola")
+
+      post entries_path, params: { entry: { food_id: liquid.id, meal: "snack", grams: 330 } }
+
+      get new_entry_path
+
+      expect(response.body).to include('data-unit="ml"')
+      expect(response.body).to include("330 ml")
+    end
+
+    it "shows the grams unit for a solid food's entry row" do
+      food = create(:food, user: user, name: "Pechuga de pollo")
+
+      post entries_path, params: { entry: { food_id: food.id, meal: "snack", grams: 150 } }
+
+      get new_entry_path
+
+      expect(response.body).to include("150 g")
+    end
+
+    it "keeps the ad-hoc form's plain amount field, with no unit selector" do
+      get new_entry_path, params: { ad_hoc: "1" }
+
+      expect(response.body).not_to include('name="entry[unit]"')
+      expect(response.body).not_to include('name="entry[quantity]"')
+    end
+
+    it "saves an ad-hoc entry with no unit at all" do
+      expect {
+        post entries_path, params: {
+          entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 10, carbs_g: 10, fat_g: 10, grams: 200 }
+        }
+      }.to change(Entry, :count).by(1)
+
+      entry = Entry.last
+      expect(entry.grams).to eq(200)
+      expect(entry.serving_label).to be_blank
+    end
+
+    it "shows no unit on an ad-hoc entry's amount field" do
+      get new_entry_path, params: { ad_hoc: "1" }
+
+      expect(response.body).to include("Peso — opcional")
+      expect(response.body).not_to include("Peso (g)")
+    end
+  end
+
   describe "ad-hoc entries" do
     it "renders the ad-hoc form, not the catalog select, for ?ad_hoc=1" do
       get new_entry_path, params: { ad_hoc: "1" }
@@ -303,6 +487,15 @@ RSpec.describe "Entries", type: :request do
       headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     expect(response).to have_http_status(:unprocessable_content)
+  end
+
+  it "returns the catalog form, not the ad-hoc fields, after an ad-hoc save" do
+    post entries_path,
+      params: { entry: { meal: "dinner", food_name_snapshot: "Pizza muzza", protein_g: 100, carbs_g: 100, fat_g: 100 } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    expect(response.body).to include('name="entry[food_id]"')
+    expect(response.body).not_to include('name="entry[food_name_snapshot]"')
   end
 
   it "resets the form after a successful Turbo save instead of keeping the logged item" do

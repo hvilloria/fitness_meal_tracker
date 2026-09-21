@@ -60,8 +60,9 @@ is milligrams.
 
 ### `foods`
 
-Values are normalized per 100 g. Servings are multipliers, never independent
-sources of truth.
+Values are stored normalized per 100 g. What the user types is per portion
+(see below); the form converts. Normalization is what lets an amount in any
+unit resolve to macros by simple proportion.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -89,21 +90,33 @@ not. When there is no label, it is computed once at creation and stored.
 
 Index on `[user_id, name]`.
 
-### `servings`
+### Portion size, not named servings
+
+An earlier draft gave each food a list of named `Serving` rows ("1 feta" = 30 g)
+so an entry could be logged as "2 fetas". It was built, and then removed after
+the human used it: the name carried no weight, and a list of named rows on the
+food form actively misled them.
+
+What replaced it is one number on `foods`:
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | uuid | |
-| `food_id` | uuid | |
-| `label` | string | "1 feta", "1 porción" |
-| `grams` | decimal | |
-| `is_default` | boolean | preselected in the entry form |
+| `portion_amount` | decimal | how much of the food's own `unit` one portion is; defaults to 100 |
 
-Macros are never stored here. "2 fetas" resolves to 60 g, and the macros follow
-from that.
+**The figures a user types on the food form describe one portion, not 100 g.**
+A food whose label reads per 100 g simply leaves the portion at 100 and nothing
+changes. A protein tub labelled per 30 g scoop gets a portion of 30 and its
+label values typed verbatim.
 
-At most one serving per food carries `is_default`; setting it on another clears
-the previous one.
+Storage stays normalized per 100 — the form converts on the way in and back out,
+so the edit form returns what was typed. That round trip is exact for every
+portion that divides 100 cleanly, and drifts at most 0.02 for awkward portions
+above 125.
+
+At logging time the amount carries a unit: **unidades** (multiply by
+`portion_amount`), the base unit (`g`/`ml`), or its ×1000 multiple (`kg`/`l`).
+`entries.serving_label` freezes the expression the user chose — "2 unidades",
+"0.5 kg" — and must never disagree with the amount stored beside it.
 
 ### `goals`
 
@@ -148,7 +161,7 @@ rather than creating a day.
 | `food_id` | uuid, nullable | null for ad-hoc entries; may also be orphaned |
 | `meal` | enum | `breakfast` \| `lunch` \| `snack` \| `dinner` |
 | `grams` | decimal, nullable | null when an ad-hoc entry has no known weight |
-| `serving_label` | string, nullable | "2 fetas", for display |
+| `serving_label` | string, nullable | "2 unidades", "0.5 kg" — what the user chose |
 | `food_name_snapshot` | string | |
 | `kcal` | decimal | calculated and frozen |
 | `protein_g` | decimal | calculated and frozen |
@@ -270,11 +283,12 @@ The server recomputes through `MacroSplit` on save, so the stored total never
 depends on the browser.
 
 **`foods#index` / `#new` / `#edit` — the catalog.** Per-100 g values as they
-appear on the label, with servings as nested fields. `state` is a required,
-prominent field.
+appear on the label for the declared portion. `state` is optional and limited
+to raw or cooked — "dry" and "as sold" were dropped as indistinguishable for
+anything that comes packaged.
 
 **`entries#new` — logging.** Pick the meal, then a recent food or a search,
-then a weight or a serving, with macros updating live as the weight is typed.
+then an amount and its unit, with macros updating live as the amount is typed.
 Saving keeps the form open and appends the entry below over Turbo Stream, so
 that a multi-item meal — 190 g pasta, 200 g beef, oil, cheese — is logged
 without renavigating. A separate link opens the ad-hoc entry form.

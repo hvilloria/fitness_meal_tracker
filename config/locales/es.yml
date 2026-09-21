@@ -19,6 +19,8 @@ es:
         name: "Nombre"
         brand: "Marca"
         state: "Estado"
+        unit: "Unidad"
+        portion_amount: "Porción"
         kcal_per_100: "Calorías"
         protein_per_100: "Proteína"
         carbs_per_100: "Carbohidratos"
@@ -26,9 +28,6 @@ es:
         fiber_per_100: "Fibra"
         sodium_per_100: "Sodio"
         sugar_per_100: "Azúcar"
-      food/servings:
-        label: "Etiqueta"
-        grams: "Gramos"
       goal:
         protein_g: "Proteína"
         carbs_g: "Carbohidratos"
@@ -44,8 +43,9 @@ es:
     states:
       raw: "Crudo"
       cooked: "Cocido"
-      dry: "Seco"
-      as_sold: "Tal como se vende"
+    units:
+      grams: "Gramos"
+      milliliters: "Mililitros"
   meals:
     breakfast: "Desayuno"
     lunch: "Almuerzo"

@@ -5,7 +5,35 @@ RSpec.describe Food, type: :model do
 
   it { is_expected.to belong_to(:user) }
   it { is_expected.to validate_presence_of(:name) }
-  it { is_expected.to validate_presence_of(:state) }
+  it { is_expected.to validate_inclusion_of(:state).in_array(Food::STATES).allow_nil }
+  it { is_expected.to validate_inclusion_of(:unit).in_array(Food::UNITS) }
+
+  describe "#unit_abbreviation and #per_100_label" do
+    it "abbreviates grams as g" do
+      food = build(:food, unit: "grams")
+
+      expect(food.unit_abbreviation).to eq("g")
+      expect(food.per_100_label).to eq("por cada 100 g")
+    end
+
+    it "abbreviates milliliters as ml" do
+      food = build(:food, :milliliters)
+
+      expect(food.unit_abbreviation).to eq("ml")
+      expect(food.per_100_label).to eq("por cada 100 ml")
+    end
+
+    it "defaults to grams" do
+      expect(Food.new.unit).to eq("grams")
+    end
+  end
+
+  it "treats a blank state the same as nil (the form's blank option posts \"\")" do
+    food = build(:food, state: "")
+
+    expect(food).to be_valid
+    expect(food.state).to be_nil
+  end
 
   it "requires the four core macro fields" do
     food = build(:food, kcal_per_100: nil, protein_per_100: nil, carbs_per_100: nil, fat_per_100: nil)
@@ -17,6 +45,111 @@ RSpec.describe Food, type: :model do
 
   it "rejects negative macro values" do
     expect(build(:food, protein_per_100: -1)).not_to be_valid
+  end
+
+  describe "deriving kcal_per_100 from the macros when it is blank" do
+    it "derives it from the 4/4/9 macro split when the label value is left blank" do
+      food = create(:food, kcal_per_100: nil, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      expect(food.kcal_per_100).to eq(170.0)
+    end
+
+    it "keeps an explicit label value even when it disagrees with 4/4/9" do
+      food = create(:food, kcal_per_100: 999, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      expect(food.kcal_per_100).to eq(999)
+    end
+
+    it "keeps an explicit 0 rather than treating it as blank" do
+      food = create(:food, kcal_per_100: 0, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      expect(food.kcal_per_100).to eq(0)
+    end
+
+    it "re-derives when an existing food's calorie field is cleared on edit" do
+      food = create(:food, kcal_per_100: 220, protein_per_100: 10, carbs_per_100: 10, fat_per_100: 10)
+
+      food.update!(kcal_per_100: nil)
+
+      expect(food.kcal_per_100).to eq(170.0)
+    end
+
+    it "still enforces the upper bound on a derived value" do
+      food = build(:food, kcal_per_100: nil, protein_per_100: 90_000, carbs_per_100: 90_000, fat_per_100: 90_000)
+
+      expect(food).not_to be_valid
+      expect(food.errors.attribute_names).to include(:kcal_per_100)
+    end
+  end
+
+  describe "the portion the typed figures describe" do
+    it "defaults to 100, so a per-100 label is the no-thought case" do
+      expect(Food.new.portion_amount).to eq(100)
+    end
+
+    it "requires a positive portion" do
+      expect(build(:food, portion_amount: 0)).not_to be_valid
+      expect(build(:food, portion_amount: -1)).not_to be_valid
+      expect(build(:food, portion_amount: nil)).not_to be_valid
+    end
+
+    it "normalises the portion's macros into the per-100 columns" do
+      food = create(:food, portion_amount: 30, kcal_per_portion: nil,
+        protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10)
+
+      expect(food.protein_per_100).to eq(33.33)
+      expect(food.carbs_per_100).to eq(16.67)
+      expect(food.fat_per_100).to eq(33.33)
+    end
+
+    it "reads the stored figures back as the portion they were typed for" do
+      food = create(:food, portion_amount: 30, kcal_per_portion: 150,
+        protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10)
+
+      expect(food.reload.protein_per_portion).to eq(10)
+      expect(food.carbs_per_portion).to eq(5)
+      expect(food.fat_per_portion).to eq(10)
+      expect(food.kcal_per_portion).to eq(150)
+    end
+
+    it "leaves a per-100 figure assigned directly alone" do
+      food = create(:food, portion_amount: 30, protein_per_100: 33.33)
+
+      expect(food.protein_per_100).to eq(33.33)
+    end
+
+    it "shows back what was typed, not a number, when the value is unusable" do
+      food = build(:food, protein_per_portion: "treinta")
+
+      expect(food).not_to be_valid
+      expect(food.protein_per_100).to be_nil
+      expect(food.protein_per_portion).to eq("treinta")
+    end
+
+    it "converts nothing when the portion itself is unusable" do
+      food = build(:food, portion_amount: 0, protein_per_portion: 10)
+
+      expect(food).not_to be_valid
+      expect(food.errors.attribute_names).to include(:portion_amount)
+    end
+
+    it "derives the optional calories from the portion's own macros" do
+      food = create(:food, portion_amount: 30, kcal_per_portion: nil,
+        protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10)
+
+      expect(food.reload.kcal_per_portion).to eq(150)
+      expect(food.kcal_per_100).to eq(500)
+    end
+
+    describe "#counts_in_portions?" do
+      it "is true for a food that declares a portion of its own" do
+        expect(build(:food, portion_amount: 30).counts_in_portions?).to be(true)
+      end
+
+      it "is false for a food whose figures are simply per 100" do
+        expect(build(:food, portion_amount: 100).counts_in_portions?).to be(false)
+      end
+    end
   end
 
   it "allows the optional micronutrients to be blank" do
@@ -34,14 +167,20 @@ RSpec.describe Food, type: :model do
         .to eq("Pechuga de pollo")
     end
 
-    it "includes the state when it is not as_sold" do
+    it "includes the state when present" do
       expect(build(:food, name: "Pollo", brand: nil, state: "raw").display_name)
         .to eq("Pollo (crudo)")
     end
 
-    it "omits the state when it is as_sold" do
-      expect(build(:food, name: "Pollo", brand: nil, state: "as_sold").display_name)
+    it "omits the state when it is blank (not applicable, e.g. a packaged food)" do
+      expect(build(:food, name: "Pollo", brand: nil, state: nil).display_name)
         .to eq("Pollo")
+    end
+
+    it "renders without a trailing parenthesis when there is no brand and no state" do
+      expect(build(:food, name: "Arroz", brand: nil, state: nil).display_name)
+        .to eq("Arroz")
+      expect(build(:food, name: "Arroz", brand: nil, state: nil).display_name).not_to include("(")
     end
 
     it "combines the brand and the state when both are present" do
@@ -50,7 +189,7 @@ RSpec.describe Food, type: :model do
     end
 
     it "treats a blank brand (the form's optional field posts \"\", not nil) the same as no brand" do
-      expect(build(:food, name: "Arroz", brand: "", state: "as_sold").display_name)
+      expect(build(:food, name: "Arroz", brand: "", state: nil).display_name)
         .to eq("Arroz")
     end
 

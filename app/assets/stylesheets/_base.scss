@@ -10,8 +10,10 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: var(--text-base);
   line-height: 1.5;
+  // Long food names must never widen the page on a 375 px screen.
+  overflow-wrap: break-word;
 }
 
 // Mobile first: one column with a comfortable gutter. Widened only above.
@@ -23,6 +25,12 @@ body {
   padding-bottom: var(--space-5);
 }
 
+// The tab bar is fixed, so the last row of content needs room to clear it —
+// the bar's own height, the home indicator, and a breath of space.
+.has-tabbar .container {
+  padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-4));
+}
+
 @media (min-width: 40rem) {
   .container {
     max-width: 40rem;
@@ -31,10 +39,38 @@ body {
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0 0 var(--space-3);
 }
 
+h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+// Inline links stay text-coloured and lean on the underline: the accent is
+// reserved for the primary action and for progress.
 a {
-  color: var(--color-accent);
+  color: var(--color-text);
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--color-muted);
+}
+
+// Every figure that updates live sets this, so digits keep their column
+// and the number stops jittering as the user types.
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

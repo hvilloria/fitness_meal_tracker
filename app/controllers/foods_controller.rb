@@ -8,8 +8,7 @@ class FoodsController < ApplicationController
   end
 
   def new
-    @food = current_user.foods.build(state: "as_sold")
-    @food.servings.build
+    @food = current_user.foods.build
   end
 
   def create
@@ -20,10 +19,6 @@ class FoodsController < ApplicationController
     else
       render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    @food.servings.build if @food.servings.empty?
   end
 
   def update
@@ -47,28 +42,17 @@ class FoodsController < ApplicationController
 
     def food_params
       permitted = require_params_hash(:food).permit(
-        :name, :brand, :state,
-        :kcal_per_100, :protein_per_100, :carbs_per_100, :fat_per_100,
-        :fiber_per_100, :sodium_per_100, :sugar_per_100,
-        servings_attributes: %i[id label grams is_default _destroy]
+        :name, :brand, :state, :unit, :portion_amount,
+        :kcal_per_portion, :protein_per_portion, :carbs_per_portion, :fat_per_portion,
+        :fiber_per_100, :sodium_per_100, :sugar_per_100
       )
-      normalize_decimals(permitted,
-        :kcal_per_100, :protein_per_100, :carbs_per_100, :fat_per_100,
+      normalize_decimals(permitted, :portion_amount,
+        :kcal_per_portion, :protein_per_portion, :carbs_per_portion, :fat_per_portion,
         :fiber_per_100, :sodium_per_100, :sugar_per_100)
-      normalize_nested_servings(permitted)
-      permitted
-    end
-
-    # accepts_nested_attributes_for permits servings_attributes both as the
-    # index-keyed Hash this app's own fields_for generates ({"0" => {...}})
-    # and as an Array of hashes ([{...}]) — a raw HTTP client can send either.
-    # Handle both explicitly rather than assuming the Hash shape.
-    def normalize_nested_servings(permitted)
-      nested = permitted[:servings_attributes]
-      return permitted if nested.blank?
-
-      entries = nested.respond_to?(:each_value) ? nested.each_value : nested
-      entries.each { |serving| normalize_decimals(serving, :grams) if serving.respond_to?(:[]=) }
+      # The portion is typed by hand with the unit habitually alongside it
+      # ("30 g") — the same field, and the same reason, as the serving grams
+      # this replaced. See NormalizesDecimalParams::AMOUNT_WITH_UNIT.
+      strip_unit_suffixes(permitted, :portion_amount)
       permitted
     end
 end

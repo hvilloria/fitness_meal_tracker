@@ -2,30 +2,63 @@
 
 <% totals = @day_log.totals %>
 <% remaining = @day_log.remaining %>
+<% goal = @day_log.goal %>
 
-<div class="row" style="justify-content: space-between;">
-  <%= link_to "‹", root_path(date: @day_log.date - 1.day), class: "button", aria: { label: "Día anterior" } %>
+<div class="daybar">
+  <%= link_to root_path(date: @day_log.date - 1.day), class: "icon-button", aria: { label: "Día anterior" } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="m14 6-6 6 6 6" />
+    </svg>
+  <% end %>
   <h1><time datetime="<%= @day_log.date.iso8601 %>"><%= l @day_log.date, format: :long %></time></h1>
-  <%= link_to "›", root_path(date: @day_log.date + 1.day), class: "button", aria: { label: "Día siguiente" } %>
+  <%= link_to root_path(date: @day_log.date + 1.day), class: "icon-button", aria: { label: "Día siguiente" } do %>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="m10 6 6 6-6 6" />
+    </svg>
+  <% end %>
 </div>
 
-<div class="rings">
-  <%= render "ring", label: "kcal", current: totals[:kcal],
-        goal: @day_log.goal.kcal, unit: "", color_var: "--color-accent" %>
-  <%= render "ring", label: "Proteína", current: totals[:protein_g],
-        goal: @day_log.goal.protein_g, unit: "g", color_var: "--color-protein" %>
-  <%= render "ring", label: "Carbos", current: totals[:carbs_g],
-        goal: @day_log.goal.carbs_g, unit: "g", color_var: "--color-carbs" %>
-  <%= render "ring", label: "Grasa", current: totals[:fat_g],
-        goal: @day_log.goal.fat_g, unit: "g", color_var: "--color-fat" %>
-</div>
+<%# Calories are the one figure the day is judged by, so they get the whole
+    card: one ring, one number. The remainder may be negative and is shown
+    that way — a day over the goal is information, not an error to hide. %>
+<section class="card hero">
+  <div class="hero__ring">
+    <svg viewBox="0 0 160 160" role="img"
+         aria-label="Calorías: <%= number_with_precision(totals[:kcal], precision: 0) %> de <%= number_with_precision(goal.kcal, precision: 0) %>">
+      <circle class="hero__track" cx="80" cy="80" r="70" />
+      <%# r=70 gives a circumference of 2πr = 439.8. A full green ring reads
+          as success, which would contradict an over-goal number — so the
+          arc itself turns danger-red once the goal is exceeded, while
+          staying at a full arc (see #ring_dash_array's own clamp). %>
+      <circle class="<%= class_names("hero__arc", "hero__arc--danger" => remaining[:kcal].negative?) %>"
+              cx="80" cy="80" r="70"
+              stroke-dasharray="<%= ring_dash_array(totals[:kcal], goal.kcal, 439.8) %>" />
+    </svg>
+    <p class="hero__readout">
+      <span class="<%= class_names("hero__value", "negative" => remaining[:kcal].negative?) %>">
+        <%= number_with_precision(remaining_amount(remaining[:kcal]), precision: 0) %>
+      </span>
+      <span class="hero__unit"><%= remaining_unit_label(remaining[:kcal]) %></span>
+    </p>
+  </div>
+  <p class="hero__progress tnum">
+    <%= number_with_precision(totals[:kcal], precision: 0) %> de <%= number_with_precision(goal.kcal, precision: 0) %> kcal
+  </p>
+</section>
 
-<div class="card remaining">
-  <span class="remaining__value <%= "negative" if remaining[:kcal].negative? %>">
-    <%= number_with_precision(remaining[:kcal], precision: 0) %>
-  </span>
-  <span class="muted">kcal restantes</span>
-</div>
+<%# The three macros are secondary to calories, so they read as bars rather
+    than as rings of equal weight: "about half way" lands faster and the
+    three of them take less room than one ring did. %>
+<section class="card macros" aria-label="Macros">
+  <%= render "macro_bar", label: "Proteína", current: totals[:protein_g],
+        goal: goal.protein_g, color_var: "--color-protein" %>
+  <%= render "macro_bar", label: "Carbos", current: totals[:carbs_g],
+        goal: goal.carbs_g, color_var: "--color-carbs" %>
+  <%= render "macro_bar", label: "Grasa", current: totals[:fat_g],
+        goal: goal.fat_g, color_var: "--color-fat" %>
+</section>
 
 <% Entry::MEALS.each do |meal| %>
   <%= render "meal", meal: meal, entries: @day_log.entries_for(meal) %>

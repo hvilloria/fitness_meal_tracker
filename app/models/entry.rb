@@ -4,8 +4,28 @@
 class Entry < ApplicationRecord
   MEALS = %w[breakfast lunch snack dinner].freeze
 
+  # The entry form's amount is a quantity plus a unit, and the unit is only
+  # ever the multiplier that turns that quantity into the food's base unit
+  # (see EntriesController#amount_resolution). These are the three values
+  # that unit select posts: one portion of the selected food (Food
+  # #portion_amount of its own unit), that unit itself, or a thousand of it.
+  PORTION_UNIT = "portion".freeze
+  BASE_UNIT = "base".freeze
+  MULTIPLE_UNIT = "x1000".freeze
+
   belongs_to :day_log
   belongs_to :food, optional: true
+
+  # #grams keeps its historical column name, but it stores the amount in the
+  # FOOD'S OWN UNIT (see Food#unit) — grams for most foods, millilitres for
+  # a liquid. Renaming the column across a live app isn't worth it; anywhere
+  # the UI shows "g" for this value, it must read the food's unit instead
+  # (Food#unit_abbreviation), not assume grams.
+
+  # Form-only, never stored: #grams remains the canonical amount, in the
+  # food's own unit. They are kept on the record so a form re-rendered after
+  # a validation error still shows what the user typed and picked.
+  attr_accessor :quantity, :unit
 
   enum :meal, MEALS.index_with(&:itself), validate: true
 
@@ -32,6 +52,13 @@ class Entry < ApplicationRecord
   # the association as it stands right now.
   def from_catalog?
     food_id.present?
+  end
+
+  # "g" for an ad-hoc entry (no food to read a unit from) or one whose food
+  # was later deleted — a neutral default that matches what every entry
+  # showed before Food gained a unit at all.
+  def unit_abbreviation
+    food&.unit_abbreviation || "g"
   end
 
   # The only way a stored entry's macros ever change. An orphaned entry (its

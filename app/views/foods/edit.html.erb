@@ -1,4 +1,7 @@
 <% content_for :title, "Editar alimento" %>
 <h1>Editar alimento</h1>
 <%= render "form", food: @food %>
-<%= button_to "Archivar", food_path(@food), method: :delete, class: "button" %>
+
+<div class="footer-action">
+  <%= button_to "Archivar", food_path(@food), method: :delete, class: "button button--quiet" %>
+</div>

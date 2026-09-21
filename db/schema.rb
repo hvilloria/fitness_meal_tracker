@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_193323) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_230100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -54,10 +54,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_193323) do
     t.decimal "fiber_per_100", precision: 8, scale: 2
     t.decimal "kcal_per_100", precision: 8, scale: 2, null: false
     t.string "name", null: false
+    t.decimal "portion_amount", precision: 8, scale: 2, default: "100.0", null: false
     t.decimal "protein_per_100", precision: 8, scale: 2, null: false
     t.decimal "sodium_per_100", precision: 8, scale: 2
-    t.string "state", null: false
+    t.string "state"
     t.decimal "sugar_per_100", precision: 8, scale: 2
+    t.string "unit", default: "grams", null: false
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index ["user_id", "name"], name: "index_foods_on_user_id_and_name"
@@ -79,17 +81,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_193323) do
     t.index ["user_id"], name: "index_goals_on_user_id"
   end
 
-  create_table "servings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.uuid "food_id", null: false
-    t.decimal "grams", precision: 8, scale: 2, null: false
-    t.boolean "is_default", default: false, null: false
-    t.string "label", null: false
-    t.datetime "updated_at", null: false
-    t.index ["food_id"], name: "index_servings_on_food_id"
-    t.index ["food_id"], name: "index_servings_on_one_default_per_food", unique: true, where: "is_default"
-  end
-
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "avatar_url"
     t.datetime "created_at", null: false
@@ -109,5 +100,4 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_193323) do
   add_foreign_key "entries", "foods", on_delete: :nullify
   add_foreign_key "foods", "users"
   add_foreign_key "goals", "users"
-  add_foreign_key "servings", "foods"
 end

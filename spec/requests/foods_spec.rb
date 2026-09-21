@@ -8,6 +8,13 @@ RSpec.describe "Foods", type: :request do
     allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com")
   end
 
+  # The portion field lives inside its own label, which is the whole
+  # sentence "Los valores son por cada [30] g" — asserting on the page as a
+  # whole would match those letters anywhere.
+  def portion_label(body)
+    body[/<label[^>]*class="portion".*?<\/label>/m].to_s
+  end
+
   it "lists only the signed-in user's active foods" do
     mine = create(:food, user: user, name: "Mi queso")
     create(:food, user: user, name: "Archivado", archived_at: Time.current)
@@ -20,28 +27,173 @@ RSpec.describe "Foods", type: :request do
     expect(response.body).not_to include("De otro")
   end
 
-  it "creates a food with a serving" do
+  it "creates a food from the figures for one portion" do
     user
 
     expect {
       post foods_path, params: {
         food: {
-          name: "Port Salut light", brand: "La Serenísima", state: "as_sold",
-          kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
-          servings_attributes: { "0" => { label: "1 feta", grams: 30, is_default: "1" } }
+          name: "Port Salut light", brand: "La Serenísima", portion_amount: "30",
+          kcal_per_portion: 150, protein_per_portion: 10, carbs_per_portion: 5, fat_per_portion: 10
         }
       }
     }.to change(Food, :count).by(1)
 
     food = Food.last
     expect(food.user).to eq(user)
-    expect(food.servings.first.label).to eq("1 feta")
+    expect(food.portion_amount).to eq(30)
+  end
+
+  describe "the portion the typed figures describe" do
+    it "normalises the portion's macros to per-100 storage" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Queso", portion_amount: "30",
+          protein_per_portion: "10", carbs_per_portion: "5", fat_per_portion: "10"
+        }
+      }
+
+      food = Food.find_by(name: "Queso")
+      expect(food.protein_per_100).to eq(33.33)
+      expect(food.carbs_per_100).to eq(16.67)
+      expect(food.fat_per_100).to eq(33.33)
+    end
+
+    it "shows the edit form the same figures that were typed" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Queso", portion_amount: "30",
+          protein_per_portion: "10", carbs_per_portion: "5", fat_per_portion: "10"
+        }
+      }
+
+      get edit_food_path(Food.find_by(name: "Queso"))
+
+      expect(response.body).to include('value="30"')
+      expect(response.body).to include('value="10"')
+      expect(response.body).to include('value="5"')
+    end
+
+    it "defaults the portion to 100, so a per-100 label needs no thought" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Etiqueta por 100",
+          kcal_per_portion: 220, protein_per_portion: 27, carbs_per_portion: 0, fat_per_portion: 12
+        }
+      }
+
+      food = Food.find_by(name: "Etiqueta por 100")
+      expect(food.portion_amount).to eq(100)
+      expect(food.protein_per_100).to eq(27)
+      expect(food.kcal_per_100).to eq(220)
+    end
+
+    it "offers 100 as the portion on a brand new food's form" do
+      user
+
+      get new_food_path
+
+      expect(response.body[/<label[^>]*class="portion".*?<\/label>/m]).to include('value="100"')
+    end
+
+    it "takes the number out of a portion typed with its unit" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Con unidad", portion_amount: "30 g",
+          protein_per_portion: "10", carbs_per_portion: "5", fat_per_portion: "10"
+        }
+      }
+
+      expect(Food.find_by(name: "Con unidad").portion_amount).to eq(30)
+    end
+
+    it "accepts a comma as the decimal separator for the portion" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Coma y unidad", portion_amount: "1,5 g",
+          protein_per_portion: "1", carbs_per_portion: "0", fat_per_portion: "0"
+        }
+      }
+
+      expect(Food.find_by(name: "Coma y unidad").portion_amount).to eq(1.5)
+    end
+
+    it "rejects a portion that is not a number at all" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Sin número", portion_amount: "treinta",
+          protein_per_portion: "10", carbs_per_portion: "5", fat_per_portion: "10"
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Food.find_by(name: "Sin número")).to be_nil
+    end
+
+    it "rejects a portion of zero rather than dividing by it" do
+      user
+
+      expect {
+        post foods_path, params: {
+          food: {
+            name: "Porción cero", portion_amount: "0",
+            protein_per_portion: "10", carbs_per_portion: "5", fat_per_portion: "10"
+          }
+        }
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Food.find_by(name: "Porción cero")).to be_nil
+    end
+
+    it "derives the optional calories from the portion's macros, not from per-100 figures" do
+      user
+
+      post foods_path, params: {
+        food: {
+          name: "Sin calorías por porción", portion_amount: "30",
+          protein_per_portion: "10", carbs_per_portion: "5", fat_per_portion: "10"
+        }
+      }
+
+      food = Food.find_by(name: "Sin calorías por porción")
+      # 10 P + 5 C + 10 G is 150 kcal for the portion, which is 500 per 100 g.
+      expect(food.kcal_per_100).to eq(500)
+      expect(food.kcal_per_portion).to eq(150)
+    end
+  end
+
+  it "creates a food without calories, deriving them from the macros" do
+    user
+
+    post foods_path, params: {
+      food: { name: "Sin calorías", protein_per_portion: 10, carbs_per_portion: 10, fat_per_portion: 10 }
+    }
+
+    food = Food.find_by(name: "Sin calorías")
+    expect(food.kcal_per_100).to eq(170.0)
+
+    get foods_path
+
+    expect(response.body).to include("170")
   end
 
   it "re-renders the form when the food is invalid" do
     user
 
-    post foods_path, params: { food: { name: "", state: "as_sold" } }
+    post foods_path, params: { food: { name: "" } }
 
     expect(response).to have_http_status(:unprocessable_content)
   end
@@ -49,24 +201,10 @@ RSpec.describe "Foods", type: :request do
   it "shows a real Spanish validation message rather than a missing-translation fallback" do
     user
 
-    post foods_path, params: { food: { name: "", state: "as_sold" } }
+    post foods_path, params: { food: { name: "" } }
 
     expect(response.body).to include("no puede estar en blanco")
     expect(response.body).not_to include("Translation missing")
-  end
-
-  it "shows a real Spanish message for an invalid nested serving, not a half-English fallback" do
-    user
-
-    post foods_path, params: {
-      food: {
-        name: "Con porción inválida", state: "as_sold",
-        kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
-        servings_attributes: { "0" => { label: "", grams: 10 } }
-      }
-    }
-
-    expect(response.body).to include("Etiqueta no puede estar en blanco")
   end
 
   it "rejects an out-of-range decimal instead of raising on save" do
@@ -75,8 +213,8 @@ RSpec.describe "Foods", type: :request do
     expect {
       post foods_path, params: {
         food: {
-          name: "Fuera de rango", state: "as_sold",
-          kcal_per_100: "1234567.89", protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12
+          name: "Fuera de rango",
+          kcal_per_portion: "1234567.89", protein_per_portion: 27, carbs_per_portion: 0, fat_per_portion: 12
         }
       }
     }.not_to raise_error
@@ -90,44 +228,48 @@ RSpec.describe "Foods", type: :request do
 
     post foods_path, params: {
       food: {
-        name: "Coma decimal", state: "as_sold",
-        kcal_per_100: "220", protein_per_100: "12,5", carbs_per_100: 0, fat_per_100: 12
+        name: "Coma decimal",
+        kcal_per_portion: "220", protein_per_portion: "12,5", carbs_per_portion: 0, fat_per_portion: 12
       }
     }
 
     expect(Food.find_by(name: "Coma decimal").protein_per_100).to eq(12.5)
   end
 
-  it "accepts a comma as the decimal separator for a serving's grams (index-keyed hash shape)" do
+  it "creates a food with the milliliters unit and saves it" do
     user
 
     post foods_path, params: {
       food: {
-        name: "Porción con coma", state: "as_sold",
-        kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
-        servings_attributes: { "0" => { label: "1 feta", grams: "12,5", is_default: "1" } }
+        name: "Coca-Cola", unit: "milliliters",
+        kcal_per_portion: 42, protein_per_portion: 0, carbs_per_portion: 10.6, fat_per_portion: 0
       }
     }
 
-    expect(Food.find_by(name: "Porción con coma").servings.first.grams).to eq(12.5)
+    expect(Food.find_by(name: "Coca-Cola").unit).to eq("milliliters")
   end
 
-  it "accepts a comma as the decimal separator for a serving's grams (array shape)" do
+  it "defaults a food's unit to grams when none is submitted" do
     user
 
-    # accepts_nested_attributes_for permits an array of hashes as well as the
-    # index-keyed hash that this app's own fields_for generates; a raw HTTP
-    # client (not the rendered form) can send this shape.
     post foods_path, params: {
-      food: {
-        name: "Porción con coma en array", state: "as_sold",
-        kcal_per_100: 220, protein_per_100: 27, carbs_per_100: 0, fat_per_100: 12,
-        servings_attributes: [ { label: "1 feta", grams: "12,5", is_default: "1" } ]
-      }
+      food: { name: "Sin unidad", kcal_per_portion: 220, protein_per_portion: 27, carbs_per_portion: 0, fat_per_portion: 12 }
     }
 
-    expect(response).not_to have_http_status(:internal_server_error)
-    expect(Food.find_by(name: "Porción con coma en array").servings.first.grams).to eq(12.5)
+    expect(Food.find_by(name: "Sin unidad").unit).to eq("grams")
+  end
+
+  it "names the portion's unit after the food's own unit" do
+    create(:food, :milliliters, user: user, name: "Coca-Cola")
+
+    get new_food_path
+
+    expect(portion_label(response.body)).to include("Los valores son por cada")
+    expect(portion_label(response.body)).to match(/>\s*g\s*</)
+
+    get edit_food_path(Food.find_by(name: "Coca-Cola"))
+
+    expect(portion_label(response.body)).to match(/>\s*ml\s*</)
   end
 
   it "updates a food" do

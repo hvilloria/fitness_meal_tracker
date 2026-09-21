@@ -1,0 +1,11 @@
+<%# locals: day, label — day is a ProgressSummary::Day %>
+<div class="weekbar <%= "weekbar--unlogged" unless day.logged %>">
+  <div class="weekbar__track"
+       title="<%= day.logged ? "#{number_with_precision(day.kcal, precision: 0)} de #{number_with_precision(day.goal_kcal, precision: 0)} kcal" : "Sin registrar" %>">
+    <% if day.logged %>
+      <div class="<%= class_names("weekbar__fill", "weekbar__fill--over" => day.kcal > day.goal_kcal) %>"
+           style="height: <%= bar_percentage(day.kcal, day.goal_kcal) %>%;"></div>
+    <% end %>
+  </div>
+  <span class="weekbar__label"><%= label %></span>
+</div>

@@ -103,6 +103,12 @@ detects any `./bin/rails server` invocation regardless of trailing flags and
 runs `db:prepare` first — see its comment for why the check is shaped that
 way (it must not fire for `console` or a one-off task).
 
+The same guard also runs `db:seed` on every boot, right after `db:prepare`.
+Render's free plan has no shell access, so this is the only way `db/seeds.rb`
+ever reaches production; it is written idempotently (keyed on user + food
+name) so re-seeding on every deploy and restart is a no-op once the data
+exists.
+
 **TLS.** Render terminates TLS at its proxy, so `config/environments/production.rb`
 sets both `config.assume_ssl = true` and `config.force_ssl = true`. Without
 `assume_ssl`, Rails would see plain HTTP behind the proxy and `force_ssl`
