@@ -39,7 +39,7 @@ RSpec.describe "Foods", type: :request do
       }
     }.to change(Food, :count).by(1)
 
-    food = Food.last
+    food = Food.find_by!(name: "Port Salut light")
     expect(food.user).to eq(user)
     expect(food.portion_amount).to eq(30)
   end
@@ -286,7 +286,7 @@ RSpec.describe "Foods", type: :request do
     delete food_path(food)
 
     expect(food.reload.archived_at).to be_present
-    expect(Food.count).to eq(1)
+    expect(Food.exists?(food.id)).to be(true)
   end
 
   it "does not 500 when the food param arrives as a bare scalar" do

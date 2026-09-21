@@ -2,21 +2,8 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 #
-# Starter catalog: three real cuts of chicken and beef, one per user.
-#
-# Figures are USDA values for the COOKED cut, per 100 g. Cooked and raw
-# differ by roughly 30% because cooking drives off water — do not paste a
-# raw-cut value in here without converting it first.
-starter_foods = [
-  { name: "Pechuga de pollo", state: "cooked", kcal_per_100: 165, protein_per_100: 31.0, carbs_per_100: 0, fat_per_100: 3.6 },
-  { name: "Muslo de pollo", state: "cooked", kcal_per_100: 209, protein_per_100: 25.9, carbs_per_100: 0, fat_per_100: 10.9 },
-  { name: "Bola de lomo", state: "cooked", kcal_per_100: 163, protein_per_100: 29.9, carbs_per_100: 0, fat_per_100: 3.9 }
-].freeze
-
-User.find_each do |user|
-  starter_foods.each do |attributes|
-    user.foods.find_or_create_by!(name: attributes[:name]) do |food|
-      food.assign_attributes(attributes)
-    end
-  end
-end
+# Starter catalog: see StarterCatalog for the figures and the idempotency
+# rationale. This only runs manually / in development now — production gets
+# its starter catalog from User.from_omniauth, once per new user, not from
+# this file (see bin/docker-entrypoint and User#seed_starter_catalog).
+User.find_each { |user| StarterCatalog.seed_for(user) }

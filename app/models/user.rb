@@ -22,12 +22,26 @@ class User < ApplicationRecord
     return nil unless allowed?(email)
 
     user = find_or_initialize_by(provider: auth.provider, uid: auth.uid)
+    newly_created = user.new_record?
     user.email = email.strip.downcase
     user.name = auth.info.name
     user.avatar_url = auth.info.image
     return nil unless user.save
 
+    # Only for a user just created: a returning user who deleted or archived
+    # a starter food must never see it come back on a later sign-in.
+    user.seed_starter_catalog if newly_created
+
     user
+  end
+
+  # Rescued rather than left to raise: a broken starter catalog (a bad
+  # figure, a DB hiccup) must not lock a user out of an app they just
+  # successfully authenticated into. Logged so the failure isn't silent.
+  def seed_starter_catalog
+    StarterCatalog.seed_for(self)
+  rescue StandardError => e
+    Rails.logger.error("Failed to seed starter catalog for user #{id}: #{e.message}")
   end
 
   def default_goal

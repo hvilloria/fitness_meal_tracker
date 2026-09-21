@@ -86,5 +86,49 @@ RSpec.describe User, type: :model do
       user = User.from_omniauth(auth_hash(email: " A@Example.com "))
       expect(user.email).to eq("a@example.com")
     end
+
+    it "gives a brand-new user exactly the three starter foods" do
+      user = User.from_omniauth(auth_hash(email: "a@example.com"))
+
+      expect(user.foods.pluck(:name)).to contain_exactly(
+        "Pechuga de pollo", "Muslo de pollo", "Bola de lomo"
+      )
+    end
+
+    it "does not recreate a starter food an existing user deleted" do
+      user = User.from_omniauth(auth_hash(email: "a@example.com"))
+      user.foods.find_by!(name: "Pechuga de pollo").destroy!
+
+      User.from_omniauth(auth_hash(email: "a@example.com"))
+
+      expect(user.foods.pluck(:name)).to contain_exactly("Muslo de pollo", "Bola de lomo")
+    end
+
+    it "does not recreate a starter food an existing user archived" do
+      user = User.from_omniauth(auth_hash(email: "a@example.com"))
+      archived = user.foods.find_by!(name: "Pechuga de pollo")
+      archived.update!(archived_at: Time.current)
+
+      User.from_omniauth(auth_hash(email: "a@example.com"))
+
+      expect(archived.reload.archived?).to be(true)
+      expect(user.foods.count).to eq(3)
+    end
+
+    it "does not add anything new for a returning user" do
+      User.from_omniauth(auth_hash(email: "a@example.com"))
+
+      expect { User.from_omniauth(auth_hash(email: "a@example.com")) }
+        .not_to change(Food, :count)
+    end
+
+    it "still signs the user in if seeding the starter catalog raises" do
+      allow(StarterCatalog).to receive(:seed_for).and_raise(StandardError, "boom")
+
+      user = User.from_omniauth(auth_hash(email: "a@example.com"))
+
+      expect(user).to be_persisted
+      expect(user.foods.count).to eq(0)
+    end
   end
 end
