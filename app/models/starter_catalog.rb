@@ -5,7 +5,8 @@
 #
 # The catalog is shared across users (see FoodsController#index), so
 # idempotency here is catalog-wide rather than per user: a starter food is
-# created only when no active food anywhere already has that name. That is
+# created only when no food anywhere already has that name, archived ones
+# included. That is
 # what keeps a second user's first sign-in from duplicating the first
 # user's copy, and what keeps a repeat run of db/seeds.rb from piling up
 # duplicates in development.
@@ -23,13 +24,14 @@ class StarterCatalog
   ].freeze
 
   class << self
-    # Checked against Food.active catalog-wide, not scoped to `user`: once
-    # any user owns an active food by this name, nothing more is created
-    # for anyone. Only a name still missing from the whole catalog is
-    # created, and it is created under `user`.
+    # Checked catalog-wide rather than per user, and against every food
+    # rather than only the active ones. Archived counts: a starter food
+    # someone deliberately archived must stay gone, including for a user
+    # who signs in later — otherwise the next sign-in quietly resurrects
+    # a copy of something the household already decided it did not want.
     def seed_for(user)
       FOODS.each do |attributes|
-        next if Food.active.exists?(name: attributes[:name])
+        next if Food.exists?(name: attributes[:name])
 
         user.foods.create!(attributes)
       end
