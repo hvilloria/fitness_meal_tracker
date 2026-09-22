@@ -106,8 +106,13 @@ way (it must not fire for `console` or a one-off task).
 `db/seeds.rb` is a development-only convenience and is never run on boot —
 wiring it into production startup would let anything later added there land
 in real user data. The starter catalog production actually needs is seeded
-by `User.from_omniauth`, once per newly created user (see `StarterCatalog`),
-so a user who deletes or archives a starter food never sees it come back.
+by `User.from_omniauth`, once per newly created user (see `StarterCatalog`).
+The food catalog is shared across users, so the check is catalog-wide, not
+per user: a starter food is created only when no active food anywhere
+already has that name — this is also what keeps a second user's first
+sign-in from duplicating the first user's copy. Because seeding only ever
+runs once, on creation, a user who deletes or archives a starter food never
+sees it come back on a later sign-in.
 
 **TLS.** Render terminates TLS at its proxy, so `config/environments/production.rb`
 sets both `config.assume_ssl = true` and `config.force_ssl = true`. Without

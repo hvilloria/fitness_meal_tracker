@@ -65,7 +65,7 @@ class EntriesController < ApplicationController
       # ORDER, not membership: the select must always offer the full active
       # catalog, with the habitually-eaten foods surfaced first.
       @recent_foods = Food.recent_for(current_user).to_a
-      @other_foods = current_user.foods.active.where.not(id: @recent_foods.map(&:id)).order(:name).to_a
+      @other_foods = Food.active.where.not(id: @recent_foods.map(&:id)).order(:name).to_a
       @last_grams = Food.last_grams_for(current_user)
     end
 
@@ -140,10 +140,12 @@ class EntriesController < ApplicationController
       "#{formatted_quantity(quantity)} #{quantity == 1 ? "unidad" : "unidades"}"
     end
 
+    # The catalog is shared: a food may belong to any user, and logging it
+    # is not an ownership action (editing it, in FoodsController, still is).
     def find_food(food_id)
       return nil if food_id.blank?
 
-      current_user.foods.find(food_id)
+      Food.find(food_id)
     end
 
     def entry_params

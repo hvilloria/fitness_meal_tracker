@@ -3,8 +3,11 @@ class FoodsController < ApplicationController
 
   before_action :set_food, only: %i[edit update destroy]
 
+  # The catalog is shared for reading: every active food is listed, not
+  # just current_user's own. #includes(:user) avoids an N+1 from the owner
+  # name shown on a food that isn't yours (see app/views/foods/_food.html.erb).
   def index
-    @foods = current_user.foods.active.order(:name)
+    @foods = Food.active.includes(:user).order(:name)
   end
 
   def new

@@ -4,6 +4,9 @@
     <p class="entry__serving">
       <% if food.state.present? %><%= t("food.states.#{food.state}") %> · <% end %><%= food.per_100_label %>
     </p>
+    <% unless food.user_id == current_user.id %>
+      <p class="muted">de <%= food.user.name %></p>
+    <% end %>
     <ul class="chips">
       <li class="chip chip--kcal"><span class="chip__key">kcal</span><%= number_with_precision(food.kcal_per_100, precision: 0) %></li>
       <li class="chip chip--protein"><span class="chip__key">P</span><%= number_with_precision(food.protein_per_100, precision: 1) %></li>
@@ -12,11 +15,13 @@
     </ul>
   </div>
 
-  <%= link_to edit_food_path(food), class: "icon-button", aria: { label: "Editar #{food.display_name}" } do %>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-      <path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4Z" />
-      <path d="m13.5 6.5 4 4" />
-    </svg>
+  <% if food.user_id == current_user.id %>
+    <%= link_to edit_food_path(food), class: "icon-button", aria: { label: "Editar #{food.display_name}" } do %>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M4 20h4l10-10a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+        <path d="m13.5 6.5 4 4" />
+      </svg>
+    <% end %>
   <% end %>
 </article>

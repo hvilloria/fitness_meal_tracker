@@ -1,8 +1,14 @@
-# The three foods a brand-new user starts with, so the entry form isn't
-# empty on day one. Seeded once, from User.from_omniauth, when the user row
-# is first created — never on every sign-in, and never on server boot (see
-# bin/docker-entrypoint's history): re-running this must not resurrect a
-# food the user deliberately deleted or archived.
+# The three starter foods, so a brand-new user's entry form isn't empty on
+# day one. Seeded once, from User.from_omniauth, when the user row is first
+# created — never on every sign-in, and never on server boot (see
+# bin/docker-entrypoint's history).
+#
+# The catalog is shared across users (see FoodsController#index), so
+# idempotency here is catalog-wide rather than per user: a starter food is
+# created only when no active food anywhere already has that name. That is
+# what keeps a second user's first sign-in from duplicating the first
+# user's copy, and what keeps a repeat run of db/seeds.rb from piling up
+# duplicates in development.
 #
 # db/seeds.rb calls the same #seed_for so development seeding stays in sync
 # with this list instead of duplicating the figures.
@@ -17,16 +23,15 @@ class StarterCatalog
   ].freeze
 
   class << self
-    # find_or_create_by! keeps this idempotent per user: a repeat call (from
-    # db/seeds.rb, run more than once) creates nothing new, and it never
-    # re-creates a food the user renamed away from, deleted or archived,
-    # because it only ever looks for the starter name — an archived row is
-    # still found by name and left alone rather than duplicated.
+    # Checked against Food.active catalog-wide, not scoped to `user`: once
+    # any user owns an active food by this name, nothing more is created
+    # for anyone. Only a name still missing from the whole catalog is
+    # created, and it is created under `user`.
     def seed_for(user)
       FOODS.each do |attributes|
-        user.foods.find_or_create_by!(name: attributes[:name]) do |food|
-          food.assign_attributes(attributes)
-        end
+        next if Food.active.exists?(name: attributes[:name])
+
+        user.foods.create!(attributes)
       end
     end
   end

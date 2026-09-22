@@ -15,16 +15,35 @@ RSpec.describe "Foods", type: :request do
     body[/<label[^>]*class="portion".*?<\/label>/m].to_s
   end
 
-  it "lists only the signed-in user's active foods" do
+  it "lists every active food in the shared catalog, including another user's" do
     mine = create(:food, user: user, name: "Mi queso")
     create(:food, user: user, name: "Archivado", archived_at: Time.current)
-    create(:food, name: "De otro")
+    other = create(:food, name: "De otro")
 
     get foods_path
 
     expect(response.body).to include(mine.name)
+    expect(response.body).to include(other.name)
     expect(response.body).not_to include("Archivado")
-    expect(response.body).not_to include("De otro")
+  end
+
+  it "shows the edit control for your own food" do
+    mine = create(:food, user: user, name: "Mi queso")
+
+    get foods_path
+
+    expect(response.body).to include(edit_food_path(mine))
+  end
+
+  it "hides the edit control and names the owner for a food you do not own" do
+    user
+    owner = create(:user, name: "Ana")
+    other = create(:food, user: owner, name: "De otro")
+
+    get foods_path
+
+    expect(response.body).not_to include(edit_food_path(other))
+    expect(response.body).to include("de Ana")
   end
 
   it "creates a food from the figures for one portion" do
@@ -297,7 +316,7 @@ RSpec.describe "Foods", type: :request do
     expect(response).to have_http_status(:bad_request)
   end
 
-  it "refuses to touch another user's food" do
+  it "refuses to edit another user's food" do
     user
     other = create(:food)
 
@@ -307,5 +326,25 @@ RSpec.describe "Foods", type: :request do
     get edit_food_path(other)
 
     expect(response).to have_http_status(:not_found)
+  end
+
+  it "refuses to update another user's food" do
+    user
+    other = create(:food, name: "De otro")
+
+    patch food_path(other), params: { food: { name: "Hackeado" } }
+
+    expect(response).to have_http_status(:not_found)
+    expect(other.reload.name).to eq("De otro")
+  end
+
+  it "refuses to archive another user's food" do
+    user
+    other = create(:food)
+
+    delete food_path(other)
+
+    expect(response).to have_http_status(:not_found)
+    expect(other.reload.archived_at).to be_nil
   end
 end

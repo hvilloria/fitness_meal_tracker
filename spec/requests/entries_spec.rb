@@ -199,15 +199,17 @@ RSpec.describe "Entries", type: :request do
     expect(response.body).to include("turbo-stream")
   end
 
-  it "refuses a food belonging to someone else" do
-    other_food = create(:food)
+  it "logs a food that belongs to someone else, from the shared catalog" do
+    other_food = create(:food, kcal_per_100: 165, protein_per_100: 31, carbs_per_100: 0, fat_per_100: 3.6)
 
-    # config.action_dispatch.show_exceptions = :rescuable in test env means
-    # ActiveRecord::RecordNotFound is rescued into a 404 response rather than
-    # propagating to the spec — see the same note in foods_spec.rb.
-    post entries_path, params: { entry: { food_id: other_food.id, meal: "lunch", grams: 40 } }
+    expect {
+      post entries_path, params: { entry: { food_id: other_food.id, meal: "lunch", grams: 100 } }
+    }.to change(Entry, :count).by(1)
 
-    expect(response).to have_http_status(:not_found)
+    entry = Entry.last
+    expect(entry.food).to eq(other_food)
+    expect(entry.protein_g).to eq(31)
+    expect(entry.day_log.user).to eq(user)
   end
 
   it "deletes an entry" do
@@ -228,6 +230,29 @@ RSpec.describe "Entries", type: :request do
   end
 
   describe "food select membership" do
+    it "offers another user's food in the shared catalog" do
+      other_food = create(:food, name: "Alimento de otro")
+
+      get new_entry_path
+
+      expect(response.body).to include(other_food.name)
+    end
+
+    it "does not let another user's own logging surface their food in your recents" do
+      other_user = create(:user)
+      other_food = create(:food, user: other_user, name: "Comida de otro")
+      other_goal = create(:goal, user: other_user, is_default: true)
+      other_day_log = create(:day_log, user: other_user, goal: other_goal)
+      create(:entry, day_log: other_day_log, food: other_food, meal: "lunch")
+
+      expect(Food.recent_for(user)).not_to include(other_food)
+
+      get new_entry_path
+
+      # Still offered — the shared catalog, not the recents list.
+      expect(response.body).to include(other_food.name)
+    end
+
     it "offers a food that has never been logged, not just recent ones" do
       food = create(:food, user: user, name: "Pechuga de pollo")
 

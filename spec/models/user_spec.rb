@@ -122,6 +122,18 @@ RSpec.describe User, type: :model do
         .not_to change(Food, :count)
     end
 
+    it "does not give a second user duplicate starter foods once the first user already has them" do
+      allow(ENV).to receive(:[]).with("ALLOWED_EMAILS").and_return("a@example.com,b@example.com")
+
+      first = User.from_omniauth(auth_hash(email: "a@example.com", uid: "first-uid"))
+      expect(first.foods.count).to eq(3)
+
+      second = User.from_omniauth(auth_hash(email: "b@example.com", uid: "second-uid"))
+
+      expect(second.foods.count).to eq(0)
+      expect(Food.where(name: "Pechuga de pollo").count).to eq(1)
+    end
+
     it "still signs the user in if seeding the starter catalog raises" do
       allow(StarterCatalog).to receive(:seed_for).and_raise(StandardError, "boom")
 
